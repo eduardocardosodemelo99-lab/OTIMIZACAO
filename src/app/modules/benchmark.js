@@ -12,14 +12,21 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const os = require('os');
+const paths = require('./paths');
 
 const CS2_PROCESS_NAME = 'cs2.exe';
 const CS2_APP_ID = '730';
 const DEFAULT_DURATION_SECONDS = 60;
 
-const HISTORY_DIR = path.join(__dirname, '..', '..', 'logs', 'benchmark');
-const HISTORY_FILE = path.join(HISTORY_DIR, 'history.json');
-const TOOLS_DIR = path.join(__dirname, '..', '..', '..', 'tools');
+function getHistoryDir() {
+  return path.join(paths.getLogDir(), 'benchmark');
+}
+function getHistoryFile() {
+  return path.join(getHistoryDir(), 'history.json');
+}
+function getToolsDir() {
+  return paths.getToolsDir();
+}
 
 // ---------------------------------------------------------------------------
 // Descoberta do CS2 instalado (Steam library folders)
@@ -144,9 +151,9 @@ async function waitForProcess(processName, timeoutMs, Logger) {
  * colocá-lo em tools/, pois o CS2 não expõe uma API nativa de FPS. */
 async function findPresentMonExecutable() {
   try {
-    const entries = await fsp.readdir(TOOLS_DIR);
+    const entries = await fsp.readdir(getToolsDir());
     const match = entries.find((f) => /presentmon.*\.exe$/i.test(f));
-    return match ? path.join(TOOLS_DIR, match) : null;
+    return match ? path.join(getToolsDir(), match) : null;
   } catch {
     return null;
   }
@@ -160,7 +167,7 @@ const PRESENTMON_DOWNLOAD_URL = 'https://github.com/GameTechDev/PresentMon/relea
  * segura em qualquer plataforma/SO — nunca lança, apenas reporta status. */
 async function checkPresentMonStatus(Logger) {
   try {
-    await fsp.mkdir(TOOLS_DIR, { recursive: true });
+    await fsp.mkdir(getToolsDir(), { recursive: true });
   } catch (err) {
     if (Logger) Logger.warn('benchmark', `Não foi possível garantir a pasta tools/: ${err.message}`);
   }
@@ -171,7 +178,7 @@ async function checkPresentMonStatus(Logger) {
   const status = {
     installed,
     path: presentMonPath,
-    toolsDir: TOOLS_DIR,
+    toolsDir: getToolsDir(),
     downloadUrl: PRESENTMON_DOWNLOAD_URL
   };
 
@@ -179,7 +186,7 @@ async function checkPresentMonStatus(Logger) {
     if (installed) {
       Logger.info('benchmark', `PresentMon encontrado em ${presentMonPath}`);
     } else {
-      Logger.warn('benchmark', `PresentMon não encontrado em ${TOOLS_DIR}. Download: ${PRESENTMON_DOWNLOAD_URL}`);
+      Logger.warn('benchmark', `PresentMon não encontrado em ${getToolsDir()}. Download: ${PRESENTMON_DOWNLOAD_URL}`);
     }
   }
 
@@ -274,7 +281,7 @@ function computeStats(frameTimesMs) {
 
 async function loadHistory() {
   try {
-    const content = await fsp.readFile(HISTORY_FILE, 'utf8');
+    const content = await fsp.readFile(getHistoryFile(), 'utf8');
     return JSON.parse(content);
   } catch {
     return [];
@@ -282,8 +289,8 @@ async function loadHistory() {
 }
 
 async function saveHistory(history) {
-  await fsp.mkdir(HISTORY_DIR, { recursive: true });
-  await fsp.writeFile(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  await fsp.mkdir(getHistoryDir(), { recursive: true });
+  await fsp.writeFile(getHistoryFile(), JSON.stringify(history, null, 2), 'utf8');
 }
 
 async function appendToHistory(run) {
@@ -322,7 +329,7 @@ async function start(options, Logger, onProgress) {
   const presentMonPath = await findPresentMonExecutable();
   if (!presentMonPath) {
     const err = new Error(
-      `PresentMon não encontrado em ${TOOLS_DIR}. Baixe o PresentMon (Intel/Microsoft, open-source) e coloque o executável nessa pasta antes de rodar o benchmark.`
+      `PresentMon não encontrado em ${getToolsDir()}. Baixe o PresentMon (Intel/Microsoft, open-source) e coloque o executável nessa pasta antes de rodar o benchmark.`
     );
     emitProgress('erro', { message: err.message });
     throw err;
@@ -350,8 +357,8 @@ async function start(options, Logger, onProgress) {
   }
 
   emitProgress('capturando_frametimes', { durationSeconds });
-  await fsp.mkdir(HISTORY_DIR, { recursive: true });
-  const csvPath = path.join(HISTORY_DIR, `${runId}.csv`);
+  await fsp.mkdir(getHistoryDir(), { recursive: true });
+  const csvPath = path.join(getHistoryDir(), `${runId}.csv`);
 
   await runPresentMonCapture({
     presentMonPath,

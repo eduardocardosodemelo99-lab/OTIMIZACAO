@@ -6,19 +6,24 @@
 
 const fs = require('fs');
 const path = require('path');
+const paths = require('./paths');
 
-const BACKUP_DIR = path.join(__dirname, '..', '..', 'backup');
+function getBackupDir() {
+  return paths.getBackupDir();
+}
 
 function ensureBackupDir() {
-  if (!fs.existsSync(BACKUP_DIR)) {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const dir = getBackupDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
+  return dir;
 }
 
 async function create() {
   ensureBackupDir();
   const id = `backup-${Date.now()}`;
-  const filePath = path.join(BACKUP_DIR, `${id}.json`);
+  const filePath = path.join(getBackupDir(), `${id}.json`);
   const snapshot = {
     id,
     createdAt: new Date().toISOString(),
@@ -31,11 +36,12 @@ async function create() {
 
 async function list() {
   ensureBackupDir();
+  const dir = getBackupDir();
   return fs
-    .readdirSync(BACKUP_DIR)
+    .readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
     .map((f) => {
-      const filePath = path.join(BACKUP_DIR, f);
+      const filePath = path.join(dir, f);
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       return { id: data.id, createdAt: data.createdAt };
     });
@@ -43,7 +49,7 @@ async function list() {
 
 async function restore(backupId) {
   ensureBackupDir();
-  const filePath = path.join(BACKUP_DIR, `${backupId}.json`);
+  const filePath = path.join(getBackupDir(), `${backupId}.json`);
   if (!fs.existsSync(filePath)) {
     return { success: false, error: `Backup não encontrado: ${backupId}` };
   }

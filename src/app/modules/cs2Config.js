@@ -5,9 +5,14 @@
 
 const path = require('path');
 const fs = require('fs');
+const paths = require('./paths');
 
-const CONFIG_DIR = path.join(__dirname, '..', '..', 'configs');
-const AUTOEXEC_PATH = path.join(CONFIG_DIR, 'autoexec.cfg');
+function getConfigDir() {
+  return paths.getConfigDir();
+}
+function getAutoexecPath() {
+  return path.join(getConfigDir(), 'autoexec.cfg');
+}
 
 const PRESETS = {
   competitive: [
@@ -32,20 +37,20 @@ const PRESETS = {
 };
 
 function ensureConfigDir() {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  if (!fs.existsSync(getConfigDir())) {
+    fs.mkdirSync(getConfigDir(), { recursive: true });
   }
 }
 
 async function getAutoexec() {
   ensureConfigDir();
-  if (!fs.existsSync(AUTOEXEC_PATH)) return '';
-  return fs.readFileSync(AUTOEXEC_PATH, 'utf8');
+  if (!fs.existsSync(getAutoexecPath())) return '';
+  return fs.readFileSync(getAutoexecPath(), 'utf8');
 }
 
 async function saveAutoexec(content) {
   ensureConfigDir();
-  fs.writeFileSync(AUTOEXEC_PATH, content, 'utf8');
+  fs.writeFileSync(getAutoexecPath(), content, 'utf8');
   return { success: true, savedAt: new Date().toISOString() };
 }
 
@@ -55,7 +60,7 @@ async function applyPreset(presetId) {
     return { success: false, error: `Preset desconhecido: ${presetId}` };
   }
   ensureConfigDir();
-  fs.writeFileSync(AUTOEXEC_PATH, lines.join('\n') + '\n', 'utf8');
+  fs.writeFileSync(getAutoexecPath(), lines.join('\n') + '\n', 'utf8');
   return { success: true, presetId, appliedAt: new Date().toISOString() };
 }
 
