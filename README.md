@@ -69,6 +69,11 @@ npm install
 npm start
 ```
 
+<!-- LATEST_BUILD_START -->
+> 📦 **Último build:** ainda não gerado — assim que o primeiro workflow rodar após esta
+> alteração, este bloco será atualizado automaticamente com o link do build mais recente.
+<!-- LATEST_BUILD_END -->
+
 ## ⚠️ Como baixar e instalar o programa (leia antes de instalar)
 
 > ### ❌ NÃO clique no botão verde "Code" → "Download ZIP"

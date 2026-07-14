@@ -5,12 +5,22 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,6 +30,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run unit tests
+        run: npm test
 
       - name: Build Windows installer (.exe)
         run: npx electron-builder --win --publish never
@@ -32,6 +45,57 @@ jobs:
             build/*.exe
           if-no-files-found: error
           retention-days: 30
+
+      - name: Update README with latest build link
+        if: success() && github.event_name != 'pull_request'
+        shell: node {0}
+        env:
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          const fs = require('fs');
+          const readmePath = 'README.md';
+          let content = fs.readFileSync(readmePath, 'utf8');
+          const shortSha = process.env.SHA.slice(0, 7);
+          const commitUrl = `${process.env.SERVER_URL}/${process.env.REPO}/commit/${process.env.SHA}`;
+          const runUrl = `${process.env.SERVER_URL}/${process.env.REPO}/actions/runs/${process.env.RUN_ID}`;
+          const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+          const block = [
+            '<!-- LATEST_BUILD_START -->',
+            `> 📦 **Último build:** [\`${shortSha}\`](${commitUrl}) — gerado em ${now}`,
+            '>',
+            `> 👉 [Abrir o run e baixar o instalador em "Artifacts"](${runUrl})`,
+            '<!-- LATEST_BUILD_END -->',
+          ].join('\n');
+          const regex = /<!-- LATEST_BUILD_START -->[\s\S]*?<!-- LATEST_BUILD_END -->/;
+          if (!regex.test(content)) {
+            console.log('Marcadores LATEST_BUILD não encontrados no README — pulando atualização.');
+            process.exit(0);
+          }
+          const updated = content.replace(regex, block);
+          if (updated === content) {
+            console.log('README já está atualizado, nada a fazer.');
+            process.exit(0);
+          }
+          fs.writeFileSync(readmePath, updated);
+          console.log('README atualizado com o link do último build.');
+
+      - name: Commit README update
+        if: success() && github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração no README para commitar."
+          else
+            git commit -m "docs: atualiza link do ultimo build [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+        continue-on-error: true
 
       - name: Notify Discord (success)
         if: success()
