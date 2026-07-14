@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
   <title>CS2 Ultimate Optimizer</title>
+  <link rel="icon" href="../assets/icons/icon.png" />
   <link rel="stylesheet" href="../../../node_modules/bootstrap/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="../styles/main.css" />
 </head>
@@ -66,8 +67,9 @@
 
   <div id="titlebar">
     <div class="titlebar-brand">
-      <span class="brand-dot"></span>
-      CS2 Ultimate Optimizer <span class="version-tag">v0.1.0</span>
+      <img class="brand-logo" src="../assets/icons/icon.png" alt="CS2 Ultimate Optimizer" />
+      <span class="brand-text">CS2 <strong>ULTIMATE</strong> OPTIMIZER</span>
+      <span class="version-tag">v0.1.0</span>
     </div>
     <div class="titlebar-controls">
       <button id="btn-min" title="Minimizar">&#8211;</button>
@@ -78,6 +80,13 @@
 
   <div id="app-shell">
     <nav id="sidebar" class="glass-panel">
+      <div class="sidebar-brand">
+        <img class="sidebar-brand-logo" src="../assets/icons/icon.png" alt="CS2 Ultimate Optimizer" />
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-title">CS2 ULTIMATE</span>
+          <span class="sidebar-brand-sub">OPTIMIZER</span>
+        </div>
+      </div>
       <ul class="nav flex-column nav-modules">
         <li><button class="nav-link active" data-view="dashboard" data-tooltip="Visão geral do sistema"><svg class="nav-icon"><use href="#icon-dashboard"/></svg><span>Dashboard</span><span class="sr-only">(Tooltip: pressione Tab ou Shift+Tab para navegar)</span></button></li>
         <li><button class="nav-link" data-view="scanner" data-tooltip="Detecção de hardware"><svg class="nav-icon"><use href="#icon-scanner"/></svg><span>Scanner</span><span class="sr-only">(Tooltip: pressione Tab ou Shift+Tab para navegar)</span></button></li>
