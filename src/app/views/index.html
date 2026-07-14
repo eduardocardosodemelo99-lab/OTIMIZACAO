@@ -79,14 +79,14 @@
   <div id="app-shell">
     <nav id="sidebar" class="glass-panel">
       <ul class="nav flex-column nav-modules">
-        <li><button class="nav-link active" data-view="dashboard"><svg class="nav-icon"><use href="#icon-dashboard"/></svg><span>Dashboard</span></button></li>
-        <li><button class="nav-link" data-view="scanner"><svg class="nav-icon"><use href="#icon-scanner"/></svg><span>Scanner</span></button></li>
-        <li><button class="nav-link" data-view="windows"><svg class="nav-icon"><use href="#icon-windows"/></svg><span>Windows</span></button></li>
-        <li><button class="nav-link" data-view="profiles"><svg class="nav-icon"><use href="#icon-target"/></svg><span>Perfis</span></button></li>
-        <li><button class="nav-link" data-view="cs2"><svg class="nav-icon"><use href="#icon-crosshair"/></svg><span>CS2</span></button></li>
-        <li><button class="nav-link" data-view="benchmark"><svg class="nav-icon"><use href="#icon-activity"/></svg><span>Benchmark</span></button></li>
-        <li><button class="nav-link" data-view="backups"><svg class="nav-icon"><use href="#icon-shield"/></svg><span>Backups</span></button></li>
-        <li><button class="nav-link" data-view="logs"><svg class="nav-icon"><use href="#icon-logs"/></svg><span>Logs</span></button></li>
+        <li><button class="nav-link active" data-view="dashboard" data-tooltip="Visão geral do sistema"><svg class="nav-icon"><use href="#icon-dashboard"/></svg><span>Dashboard</span></button></li>
+        <li><button class="nav-link" data-view="scanner" data-tooltip="Detecção de hardware"><svg class="nav-icon"><use href="#icon-scanner"/></svg><span>Scanner</span></button></li>
+        <li><button class="nav-link" data-view="windows" data-tooltip="Ajustes do Windows"><svg class="nav-icon"><use href="#icon-windows"/></svg><span>Windows</span></button></li>
+        <li><button class="nav-link" data-view="profiles" data-tooltip="Perfis de desempenho"><svg class="nav-icon"><use href="#icon-target"/></svg><span>Perfis</span></button></li>
+        <li><button class="nav-link" data-view="cs2" data-tooltip="Configurações do CS2"><svg class="nav-icon"><use href="#icon-crosshair"/></svg><span>CS2</span></button></li>
+        <li><button class="nav-link" data-view="benchmark" data-tooltip="Testes de FPS e frame time"><svg class="nav-icon"><use href="#icon-activity"/></svg><span>Benchmark</span></button></li>
+        <li><button class="nav-link" data-view="backups" data-tooltip="Snapshots e restauração"><svg class="nav-icon"><use href="#icon-shield"/></svg><span>Backups</span></button></li>
+        <li><button class="nav-link" data-view="logs" data-tooltip="Histórico de eventos"><svg class="nav-icon"><use href="#icon-logs"/></svg><span>Logs</span></button></li>
       </ul>
     </nav>
 
@@ -134,7 +134,7 @@
         <h2>Benchmark</h2>
         <p class="text-muted">Average FPS, 1% low, 0.1% low, Frame Time.</p>
         <div id="presentmon-banner" class="presentmon-banner d-none">
-          <span class="presentmon-banner-text"><svg class="inline-icon"><use href="#icon-warning"/></svg> PresentMon não encontrado na pasta <code>tools/</code>. Ele é necessário para capturar os frame times reais do CS2.</span>
+          <span class="presentmon-banner-text"><svg class="inline-icon" data-tooltip="Aviso"><use href="#icon-warning"/></svg> PresentMon não encontrado na pasta <code>tools/</code>. Ele é necessário para capturar os frame times reais do CS2.</span>
           <button id="btn-download-presentmon" class="btn btn-cs2 presentmon-download-btn">Baixar PresentMon</button>
         </div>
         <div class="mb-2">
