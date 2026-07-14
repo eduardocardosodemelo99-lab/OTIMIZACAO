@@ -76,8 +76,16 @@
       <section id="view-benchmark" class="view glass-panel d-none">
         <h2>Benchmark</h2>
         <p class="text-muted">Average FPS, 1% low, 0.1% low, Frame Time.</p>
+        <div class="mb-2">
+          <label for="benchmark-duration" class="text-muted">Duração (segundos):</label>
+          <input id="benchmark-duration" type="number" min="10" max="600" value="60" class="benchmark-duration-input" />
+        </div>
         <button id="btn-start-benchmark" class="btn btn-cs2">Iniciar Benchmark</button>
+        <div id="benchmark-status" class="benchmark-status d-none"></div>
+        <div id="benchmark-summary" class="scanner-summary d-none"></div>
         <canvas id="benchmark-chart" height="120"></canvas>
+        <h4 class="mt-4">Histórico</h4>
+        <div id="benchmark-history" class="scanner-categories"></div>
       </section>
 
       <section id="view-logs" class="view glass-panel d-none">

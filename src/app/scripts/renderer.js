@@ -18,6 +18,7 @@ function switchView(viewId) {
   if (viewId === 'windows') loadWindowsTweaks();
   if (viewId === 'profiles') loadProfiles();
   if (viewId === 'cs2') loadCs2Autoexec();
+  if (viewId === 'benchmark') loadBenchmarkHistory();
 }
 
 document.querySelectorAll('.nav-link').forEach((btn) => {
@@ -205,16 +206,113 @@ document.getElementById('btn-save-autoexec').addEventListener('click', async () 
   });
 });
 
-document.getElementById('btn-start-benchmark').addEventListener('click', async () => {
-  const run = await window.cs2app.benchmark.start({ durationSeconds: 60 });
-  Swal.fire({
-    icon: 'info',
-    title: 'Benchmark registrado',
-    text: `ID: ${run.id}`,
-    background: '#14171f',
-    color: '#f1f2f4',
-    confirmButtonColor: '#ff6a00'
+let benchmarkChart = null;
+
+const BENCHMARK_STAGE_LABELS = {
+  procurando_cs2: 'Procurando instalação do CS2...',
+  lancando_cs2: 'Lançando o CS2...',
+  capturando_frametimes: 'Capturando frame times (PresentMon)...',
+  processando_resultados: 'Processando resultados...',
+  concluido: 'Benchmark concluído!',
+  erro: 'Erro no benchmark'
+};
+
+function renderBenchmarkChart(stats) {
+  const ctx = document.getElementById('benchmark-chart');
+  if (benchmarkChart) benchmarkChart.destroy();
+  benchmarkChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Average FPS', '1% Low', '0.1% Low'],
+      datasets: [
+        {
+          label: 'FPS',
+          data: [stats.averageFps, stats.low1Percent, stats.low01Percent],
+          backgroundColor: ['#ff6a00', '#ffb066', '#ff3d3d']
+        }
+      ]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, ticks: { color: '#c7cad1' } },
+        x: { ticks: { color: '#c7cad1' } }
+      },
+      plugins: { legend: { display: false } }
+    }
   });
+}
+
+function renderBenchmarkHistoryList(history) {
+  const container = document.getElementById('benchmark-history');
+  if (!history || history.length === 0) {
+    container.innerHTML = '<p class="text-muted">Nenhum benchmark registrado ainda.</p>';
+    return;
+  }
+  container.innerHTML = history
+    .map(
+      (run) => `
+      <div class="tweak-item">
+        <strong>${new Date(run.startedAt).toLocaleString('pt-BR')}</strong>
+        <span class="text-muted">Duração: ${run.durationSeconds}s · ${run.stats.frameCount ?? 0} frames</span>
+        <span class="badge-size">Avg ${run.stats.averageFps ?? '--'} FPS · 1% low ${run.stats.low1Percent ?? '--'} · 0.1% low ${run.stats.low01Percent ?? '--'}</span>
+      </div>`
+    )
+    .join('');
+}
+
+async function loadBenchmarkHistory() {
+  const history = await window.cs2app.benchmark.getHistory();
+  renderBenchmarkHistoryList(history);
+}
+
+window.cs2app.benchmark.onSample((progress) => {
+  const statusEl = document.getElementById('benchmark-status');
+  statusEl.classList.remove('d-none');
+  statusEl.textContent = BENCHMARK_STAGE_LABELS[progress.stage] || progress.stage;
+  if (progress.stage === 'erro') statusEl.classList.add('benchmark-status-error');
+  else statusEl.classList.remove('benchmark-status-error');
+});
+
+document.getElementById('btn-start-benchmark').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-start-benchmark');
+  const durationSeconds = Number(document.getElementById('benchmark-duration').value) || 60;
+  btn.disabled = true;
+  btn.textContent = 'Rodando...';
+  try {
+    const run = await window.cs2app.benchmark.start({ durationSeconds });
+
+    const summary = document.getElementById('benchmark-summary');
+    summary.classList.remove('d-none');
+    summary.innerHTML = `
+      <span>Average FPS: <strong>${run.stats.averageFps ?? '--'}</strong></span>
+      <span>1% Low: <strong>${run.stats.low1Percent ?? '--'}</strong></span>
+      <span>0.1% Low: <strong>${run.stats.low01Percent ?? '--'}</strong></span>
+      <span>Frame Time médio: <strong>${run.stats.avgFrameTimeMs ?? '--'} ms</strong></span>
+    `;
+    renderBenchmarkChart(run.stats);
+    await loadBenchmarkHistory();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Benchmark concluído',
+      text: `ID: ${run.id}`,
+      background: '#14171f',
+      color: '#f1f2f4',
+      confirmButtonColor: '#ff6a00'
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Falha no benchmark',
+      text: err.message,
+      background: '#14171f',
+      color: '#f1f2f4',
+      confirmButtonColor: '#ff6a00'
+    });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Iniciar Benchmark';
+  }
 });
 
 // Carrega o Dashboard ao iniciar

@@ -239,6 +239,32 @@ html, body {
   font-weight: 600;
 }
 
+.benchmark-duration-input {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  width: 100px;
+  margin-left: 8px;
+}
+
+.benchmark-status {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 106, 0, 0.12);
+  border: 1px solid rgba(255, 106, 0, 0.3);
+  color: #ffb066;
+  font-size: 13px;
+}
+
+.benchmark-status-error {
+  background: rgba(255, 61, 61, 0.12);
+  border-color: rgba(255, 61, 61, 0.3);
+  color: #ff8080;
+}
+
 .tweak-item, .profile-item {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-glass);
