@@ -44,6 +44,11 @@ jest.mock('../../src/app/modules/windowsTweaks/components/amdSpecificManager', (
   restoreState: jest.fn()
 }));
 
+jest.mock('../../src/app/modules/windowsTweaks/components/networkTweaksManager', () => ({
+  captureState: jest.fn(),
+  restoreState: jest.fn()
+}));
+
 jest.mock('../../src/app/modules/cs2Config', () => ({
   getAutoexec: jest.fn(),
   saveAutoexec: jest.fn()
@@ -56,6 +61,7 @@ const gameModeManager = require('../../src/app/modules/windowsTweaks/components/
 const ssdOptimizeManager = require('../../src/app/modules/windowsTweaks/components/ssdOptimizeManager');
 const explorerTweaksManager = require('../../src/app/modules/windowsTweaks/components/explorerTweaksManager');
 const amdSpecificManager = require('../../src/app/modules/windowsTweaks/components/amdSpecificManager');
+const networkTweaksManager = require('../../src/app/modules/windowsTweaks/components/networkTweaksManager');
 const cs2Config = require('../../src/app/modules/cs2Config');
 
 function makeLogger() {
@@ -106,6 +112,7 @@ describe('backup module', () => {
     ssdOptimizeManager.captureState.mockResolvedValue({ trim: { trimEnabled: true }, indexing: { indexingEnabled: false }, drive: 'C:' });
     explorerTweaksManager.captureState.mockResolvedValue({ fileExtensions: { extensionsVisible: false }, windowAnimations: { animationsEnabled: true } });
     amdSpecificManager.captureState.mockResolvedValue({ powerThrottling: { throttlingDisabled: false }, hwScheduling: { hwSchedulingEnabled: false } });
+    networkTweaksManager.captureState.mockResolvedValue({ networkThrottling: { throttlingDisabled: false }, systemResponsiveness: { responsivenessValue: 20 } });
     cs2Config.getAutoexec.mockResolvedValue('cl_crosshairstyle 4');
 
     const backup = loadBackup();
@@ -122,6 +129,7 @@ describe('backup module', () => {
     expect(saved.state.ssdOptimize).toMatchObject({ trim: { trimEnabled: true }, indexing: { indexingEnabled: false } });
     expect(saved.state.explorerTweaks).toMatchObject({ fileExtensions: { extensionsVisible: false }, windowAnimations: { animationsEnabled: true } });
     expect(saved.state.amdSpecific).toMatchObject({ powerThrottling: { throttlingDisabled: false }, hwScheduling: { hwSchedulingEnabled: false } });
+    expect(saved.state.networkTweaks).toMatchObject({ networkThrottling: { throttlingDisabled: false }, systemResponsiveness: { responsivenessValue: 20 } });
     expect(saved.state.cs2Autoexec).toBe('cl_crosshairstyle 4');
   });
 
@@ -152,6 +160,7 @@ describe('backup module', () => {
     ssdOptimizeManager.restoreState.mockResolvedValue({ success: true });
     explorerTweaksManager.restoreState.mockResolvedValue({ success: true });
     amdSpecificManager.restoreState.mockResolvedValue({ success: true });
+    networkTweaksManager.restoreState.mockResolvedValue({ success: true });
     cs2Config.saveAutoexec.mockResolvedValue({ success: true });
 
     const backup = loadBackup();
@@ -166,6 +175,7 @@ describe('backup module', () => {
         ssdOptimize: { trim: { trimEnabled: true }, indexing: { indexingEnabled: false }, drive: 'C:' },
         explorerTweaks: { fileExtensions: { extensionsVisible: true }, windowAnimations: { animationsEnabled: false } },
         amdSpecific: { powerThrottling: { throttlingDisabled: true }, hwScheduling: { hwSchedulingEnabled: true } },
+        networkTweaks: { networkThrottling: { throttlingDisabled: true }, systemResponsiveness: { responsivenessValue: 0 } },
         cs2Autoexec: 'cl_crosshairstyle 4'
       }
     });
@@ -193,6 +203,10 @@ describe('backup module', () => {
     );
     expect(amdSpecificManager.restoreState).toHaveBeenCalledWith(
       { powerThrottling: { throttlingDisabled: true }, hwScheduling: { hwSchedulingEnabled: true } },
+      expect.anything()
+    );
+    expect(networkTweaksManager.restoreState).toHaveBeenCalledWith(
+      { networkThrottling: { throttlingDisabled: true }, systemResponsiveness: { responsivenessValue: 0 } },
       expect.anything()
     );
     expect(cs2Config.saveAutoexec).toHaveBeenCalledWith('cl_crosshairstyle 4');

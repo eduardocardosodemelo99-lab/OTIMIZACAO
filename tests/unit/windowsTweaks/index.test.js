@@ -6,6 +6,7 @@ jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setGameMode');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setExplorerTweaks');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setAmdSpecific');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setNetworkTweaks');
 jest.mock('../../../src/app/modules/backup');
 
 const backup = require('../../../src/app/modules/backup');
@@ -19,6 +20,7 @@ const setGameMode = require('../../../src/app/modules/windowsTweaks/tweaks/setGa
 const setSsdOptimize = require('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 const setExplorerTweaks = require('../../../src/app/modules/windowsTweaks/tweaks/setExplorerTweaks');
 const setAmdSpecific = require('../../../src/app/modules/windowsTweaks/tweaks/setAmdSpecific');
+const setNetworkTweaks = require('../../../src/app/modules/windowsTweaks/tweaks/setNetworkTweaks');
 
 // jest.mock em módulos com apenas funções nomeadas (sem export default) não
 // preserva id/name/description automaticamente — repõe os campos estáticos
@@ -47,6 +49,9 @@ setExplorerTweaks.description = 'desc';
 setAmdSpecific.id = 'amd-specific';
 setAmdSpecific.name = 'AMD Specific';
 setAmdSpecific.description = 'desc';
+setNetworkTweaks.id = 'network-tweaks';
+setNetworkTweaks.name = 'Rede';
+setNetworkTweaks.description = 'desc';
 
 const windowsTweaks = require('../../../src/app/modules/windowsTweaks');
 
@@ -81,6 +86,12 @@ describe('windowsTweaks/index', () => {
     expect(amdSpecific.implemented).toBe(true);
   });
 
+  test('network-tweaks agora é um tweak implementado, não mais legado', async () => {
+    const status = await windowsTweaks.listStatus();
+    const networkTweaks = status.find((s) => s.id === 'network-tweaks');
+    expect(networkTweaks.implemented).toBe(true);
+  });
+
   test('applyTweak retorna erro para um tweak desconhecido', async () => {
     const result = await windowsTweaks.applyTweak('tweak-que-nao-existe', makeLogger());
     expect(result.success).toBe(false);
@@ -109,9 +120,9 @@ describe('windowsTweaks/index', () => {
     expect(result.backupId).toBeNull();
   });
 
-  test('applyTweak em tweak legado (sem implementação real) retorna o comportamento TODO padrão', async () => {
-    const result = await windowsTweaks.applyTweak('network-tweaks', makeLogger());
-    expect(result).toMatchObject({ success: true, tweakId: 'network-tweaks' });
+  test('applyTweak retorna erro para um tweak legado inexistente (todos os antigos já foram implementados)', async () => {
+    const result = await windowsTweaks.applyTweak('tweak-legado-fantasma', makeLogger());
+    expect(result).toMatchObject({ success: false });
   });
 
   test('revertTweak delega para o tweak implementado correspondente', async () => {
@@ -149,9 +160,6 @@ describe('windowsTweaks/index', () => {
     expect(powerPlan.implemented).toBe(true);
     expect(powerPlan.reversible).toBe(true);
 
-    const legacy = status.find((s) => s.id === 'network-tweaks');
-    expect(legacy.implemented).toBe(false);
-    expect(legacy.reversible).toBe(false);
 
     const gameMode = status.find((s) => s.id === 'game-mode');
     expect(gameMode.implemented).toBe(true);
@@ -168,6 +176,10 @@ describe('windowsTweaks/index', () => {
     const amdSpecific = status.find((s) => s.id === 'amd-specific');
     expect(amdSpecific.implemented).toBe(true);
     expect(amdSpecific.reversible).toBe(true);
+
+    const networkTweaks = status.find((s) => s.id === 'network-tweaks');
+    expect(networkTweaks.implemented).toBe(true);
+    expect(networkTweaks.reversible).toBe(true);
   });
 
   test('registerWindowsHandlers registra todos os canais IPC esperados', () => {

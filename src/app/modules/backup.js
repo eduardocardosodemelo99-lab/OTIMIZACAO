@@ -16,6 +16,7 @@ const gameModeManager = require('./windowsTweaks/components/gameModeManager');
 const ssdOptimizeManager = require('./windowsTweaks/components/ssdOptimizeManager');
 const explorerTweaksManager = require('./windowsTweaks/components/explorerTweaksManager');
 const amdSpecificManager = require('./windowsTweaks/components/amdSpecificManager');
+const networkTweaksManager = require('./windowsTweaks/components/networkTweaksManager');
 const cs2Config = require('./cs2Config');
 
 function getBackupDir() {
@@ -69,6 +70,7 @@ async function createSnapshot({ label, tweakId, state }) {
       ssdOptimize: (state && state.ssdOptimize) || null,
       explorerTweaks: (state && state.explorerTweaks) || null,
       amdSpecific: (state && state.amdSpecific) || null,
+      networkTweaks: (state && state.networkTweaks) || null,
       cs2Autoexec: (state && state.cs2Autoexec) || null
     }
   };
@@ -82,7 +84,7 @@ async function createSnapshot({ label, tweakId, state }) {
  * atual do autoexec.cfg — tudo em um único snapshot restaurável.
  */
 async function create() {
-  const [services, procPriority, powerPlan, gameMode, ssdOptimize, explorerTweaks, amdSpecific, cs2Autoexec] = await Promise.all([
+  const [services, procPriority, powerPlan, gameMode, ssdOptimize, explorerTweaks, amdSpecific, networkTweaks, cs2Autoexec] = await Promise.all([
     serviceManager.captureServicesState(),
     processPriority.captureState(processPriority.normalizeProcessName('cs2')),
     powerPlanManager.captureState(),
@@ -90,6 +92,7 @@ async function create() {
     ssdOptimizeManager.captureState(),
     explorerTweaksManager.captureState(),
     amdSpecificManager.captureState(),
+    networkTweaksManager.captureState(),
     cs2Config.getAutoexec().catch(() => '')
   ]);
 
@@ -100,7 +103,7 @@ async function create() {
     type: 'manual',
     tweakId: null,
     label: 'Backup manual completo',
-    state: { services, processPriority: procPriority, powerPlan, gameMode, ssdOptimize, explorerTweaks, amdSpecific, cs2Autoexec }
+    state: { services, processPriority: procPriority, powerPlan, gameMode, ssdOptimize, explorerTweaks, amdSpecific, networkTweaks, cs2Autoexec }
   };
   writeSnapshot(snapshot);
   return { success: true, id, filePath: path.join(getBackupDir(), `${id}.json`) };
@@ -129,6 +132,7 @@ async function list() {
           hasSsdOptimize: Boolean(data.state && data.state.ssdOptimize && (data.state.ssdOptimize.trim || data.state.ssdOptimize.indexing)),
           hasExplorerTweaks: Boolean(data.state && data.state.explorerTweaks && (data.state.explorerTweaks.fileExtensions || data.state.explorerTweaks.windowAnimations)),
           hasAmdSpecific: Boolean(data.state && data.state.amdSpecific && (data.state.amdSpecific.powerThrottling || data.state.amdSpecific.hwScheduling)),
+          hasNetworkTweaks: Boolean(data.state && data.state.networkTweaks && (data.state.networkTweaks.networkThrottling || data.state.networkTweaks.systemResponsiveness)),
           hasCs2Autoexec: data.state && typeof data.state.cs2Autoexec === 'string'
         };
       } catch (_) {
@@ -203,6 +207,13 @@ async function restore(backupId, Logger) {
     results.amdSpecific = await amdSpecificManager.restoreState(state.amdSpecific, Logger);
     if (!results.amdSpecific.success) anyFailed = true;
     if (Logger) Logger.info('backup', `Ajustes AMD Specific restaurados a partir do backup ${backupId}`, results.amdSpecific);
+  }
+
+  if (state && state.networkTweaks) {
+    anyAttempted = true;
+    results.networkTweaks = await networkTweaksManager.restoreState(state.networkTweaks, Logger);
+    if (!results.networkTweaks.success) anyFailed = true;
+    if (Logger) Logger.info('backup', `Ajustes de rede restaurados a partir do backup ${backupId}`, results.networkTweaks);
   }
 
   if (state && typeof state.cs2Autoexec === 'string') {

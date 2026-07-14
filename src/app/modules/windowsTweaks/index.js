@@ -18,6 +18,7 @@ const gameModeManager = require('./components/gameModeManager');
 const ssdOptimizeManager = require('./components/ssdOptimizeManager');
 const explorerTweaksManager = require('./components/explorerTweaksManager');
 const amdSpecificManager = require('./components/amdSpecificManager');
+const networkTweaksManager = require('./components/networkTweaksManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
@@ -28,13 +29,14 @@ const setGameMode = require('./tweaks/setGameMode');
 const setSsdOptimize = require('./tweaks/setSsdOptimize');
 const setExplorerTweaks = require('./tweaks/setExplorerTweaks');
 const setAmdSpecific = require('./tweaks/setAmdSpecific');
+const setNetworkTweaks = require('./tweaks/setNetworkTweaks');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
-// Perfis e a UI existente. Serão implementados em etapas futuras.
-const LEGACY_TWEAKS = [
-  { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' }
-];
+// Perfis e a UI existente. Todos já possuem implementação real; lista
+// mantida vazia para compatibilidade futura caso novos tweaks legados sejam
+// adicionados antes de ter implementação.
+const LEGACY_TWEAKS = [];
 
 // Tweaks com implementação real, construídos a partir dos componentes reutilizáveis.
 const IMPLEMENTED_TWEAKS = [
@@ -45,7 +47,8 @@ const IMPLEMENTED_TWEAKS = [
   setGameMode,
   setSsdOptimize,
   setExplorerTweaks,
-  setAmdSpecific
+  setAmdSpecific,
+  setNetworkTweaks
 ];
 
 const AVAILABLE_TWEAKS = [
@@ -86,6 +89,9 @@ async function captureTweakPreState(tweakId, options) {
   }
   if (tweakId === 'amd-specific') {
     return { amdSpecific: await amdSpecificManager.captureState() };
+  }
+  if (tweakId === 'network-tweaks') {
+    return { networkTweaks: await networkTweaksManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -172,5 +178,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager, explorerTweaksManager, amdSpecificManager }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager, explorerTweaksManager, amdSpecificManager, networkTweaksManager }
 };
