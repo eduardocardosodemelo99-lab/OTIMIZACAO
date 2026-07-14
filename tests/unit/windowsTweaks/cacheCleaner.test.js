@@ -1,4 +1,13 @@
 const os = require('os');
+const path = require('path');
+
+// path.join usa separador diferente por plataforma (posix "/" vs win32 "\").
+// Os mocks abaixo constroem os caminhos com path.join (em vez de strings fixas
+// como '/cache/locked.tmp') para que os testes passem tanto em Linux/macOS
+// (ambiente local/sandbox) quanto no runner windows-latest do GitHub Actions.
+const CACHE_DIR = path.join(path.sep, 'cache');
+const CACHE_SUB_DIR = path.join(CACHE_DIR, 'sub');
+const LOCKED_FILE = path.join(CACHE_DIR, 'locked.tmp');
 
 describe('windowsTweaks/components/cacheCleaner', () => {
   afterEach(() => {
@@ -24,27 +33,27 @@ describe('windowsTweaks/components/cacheCleaner', () => {
   test('clearDirectory remove arquivos e soma bytes liberados, ignorando erros individuais', async () => {
     jest.doMock('fs/promises', () => ({
       readdir: jest.fn(async (dirPath) => {
-        if (dirPath === '/cache') {
+        if (dirPath === CACHE_DIR) {
           return [
             { name: 'a.txt', isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false },
             { name: 'sub', isDirectory: () => true, isFile: () => false, isSymbolicLink: () => false },
             { name: 'locked.tmp', isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false }
           ];
         }
-        if (dirPath === '/cache/sub') {
+        if (dirPath === CACHE_SUB_DIR) {
           return [{ name: 'b.txt', isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false }];
         }
         return [];
       }),
       stat: jest.fn(async (filePath) => {
-        if (filePath === '/cache/locked.tmp') throw new Error('EPERM');
+        if (filePath === LOCKED_FILE) throw new Error('EPERM');
         return { size: 100 };
       }),
       unlink: jest.fn(async () => {})
     }));
 
     const { clearDirectory } = require('../../../src/app/modules/windowsTweaks/components/cacheCleaner');
-    const result = await clearDirectory('/cache');
+    const result = await clearDirectory(CACHE_DIR);
 
     expect(result.deletedFiles).toBe(2); // a.txt + sub/b.txt
     expect(result.freedBytes).toBe(200);
