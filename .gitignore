@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+out/
+*.log
+src/logs/*.log
+src/backup/*.zip
+.DS_Store
+Thumbs.db
+.env
+*.exe
+*.msi
