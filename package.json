@@ -1,0 +1,48 @@
+{
+  "name": "cs2-ultimate-optimizer",
+  "version": "0.1.0",
+  "description": "CS2 Ultimate Optimizer - Software profissional de otimização de sistema e Counter-Strike 2",
+  "main": "src/app/main.js",
+  "author": "Eduardo Cardoso de Melo",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.eduardomelo.cs2ultimateoptimizer",
+    "productName": "CS2 Ultimate Optimizer",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "src/app/assets/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "chart.js": "^4.4.3",
+    "sweetalert2": "^11.12.4",
+    "electron-store": "^8.2.0",
+    "systeminformation": "^5.22.11"
+  }
+}
