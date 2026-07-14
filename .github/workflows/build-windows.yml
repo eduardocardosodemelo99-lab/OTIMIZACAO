@@ -100,13 +100,12 @@ jobs:
 
       - name: Update Discord build dashboard & alert on failure
         if: always()
-        shell: node {0}
+        shell: bash
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_STATUS: ${{ job.status }}
-        run: |
-          require('./.github/scripts/discord-dashboard.js');
+        run: node "${GITHUB_WORKSPACE}/.github/scripts/discord-dashboard.js"
 
       - name: Commit dashboard message id (if changed)
         if: always()
