@@ -13,18 +13,19 @@
 const serviceManager = require('./components/serviceManager');
 const cacheCleaner = require('./components/cacheCleaner');
 const processPriority = require('./components/processPriority');
+const powerPlanManager = require('./components/powerPlanManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
 const cleanSystemCache = require('./tweaks/cleanSystemCache');
 const boostProcessPriority = require('./tweaks/boostProcessPriority');
+const setPowerPlan = require('./tweaks/setPowerPlan');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
 // Perfis e a UI existente. Serão implementados em etapas futuras.
 const LEGACY_TWEAKS = [
   { id: 'game-mode', name: 'Game Mode', description: 'Ativa/otimiza o Game Mode do Windows' },
-  { id: 'power-plan', name: 'Power Plan', description: 'Aplica plano de energia de alto desempenho' },
   { id: 'ssd-optimize', name: 'Otimização de SSD', description: 'Ajustes de TRIM e indexação' },
   { id: 'explorer-tweaks', name: 'Explorer', description: 'Reduz overhead visual do Explorer' },
   { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' },
@@ -32,7 +33,7 @@ const LEGACY_TWEAKS = [
 ];
 
 // Tweaks com implementação real, construídos a partir dos componentes reutilizáveis.
-const IMPLEMENTED_TWEAKS = [disableUnnecessaryServices, cleanSystemCache, boostProcessPriority];
+const IMPLEMENTED_TWEAKS = [disableUnnecessaryServices, cleanSystemCache, boostProcessPriority, setPowerPlan];
 
 const AVAILABLE_TWEAKS = [
   ...LEGACY_TWEAKS,
@@ -57,6 +58,9 @@ async function captureTweakPreState(tweakId, options) {
   if (tweakId === 'boost-process-priority') {
     const processName = processPriority.normalizeProcessName(options.processName || 'cs2');
     return { processPriority: await processPriority.captureState(processName) };
+  }
+  if (tweakId === 'power-plan') {
+    return { powerPlan: await powerPlanManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -143,5 +147,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager }
 };

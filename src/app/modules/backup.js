@@ -11,6 +11,7 @@ const path = require('path');
 const paths = require('./paths');
 const serviceManager = require('./windowsTweaks/components/serviceManager');
 const processPriority = require('./windowsTweaks/components/processPriority');
+const powerPlanManager = require('./windowsTweaks/components/powerPlanManager');
 const cs2Config = require('./cs2Config');
 
 function getBackupDir() {
@@ -59,6 +60,7 @@ async function createSnapshot({ label, tweakId, state }) {
     state: {
       services: (state && state.services) || null,
       processPriority: (state && state.processPriority) || null,
+      powerPlan: (state && state.powerPlan) || null,
       cs2Autoexec: (state && state.cs2Autoexec) || null
     }
   };
@@ -72,9 +74,10 @@ async function createSnapshot({ label, tweakId, state }) {
  * atual do autoexec.cfg — tudo em um único snapshot restaurável.
  */
 async function create() {
-  const [services, procPriority, cs2Autoexec] = await Promise.all([
+  const [services, procPriority, powerPlan, cs2Autoexec] = await Promise.all([
     serviceManager.captureServicesState(),
     processPriority.captureState(processPriority.normalizeProcessName('cs2')),
+    powerPlanManager.captureState(),
     cs2Config.getAutoexec().catch(() => '')
   ]);
 
@@ -85,7 +88,7 @@ async function create() {
     type: 'manual',
     tweakId: null,
     label: 'Backup manual completo',
-    state: { services, processPriority: procPriority, cs2Autoexec }
+    state: { services, processPriority: procPriority, powerPlan, cs2Autoexec }
   };
   writeSnapshot(snapshot);
   return { success: true, id, filePath: path.join(getBackupDir(), `${id}.json`) };
@@ -109,6 +112,7 @@ async function list() {
           label: data.label || 'Backup',
           hasServices: Boolean(data.state && data.state.services),
           hasProcessPriority: Boolean(data.state && data.state.processPriority),
+          hasPowerPlan: Boolean(data.state && data.state.powerPlan && data.state.powerPlan.guid),
           hasCs2Autoexec: data.state && typeof data.state.cs2Autoexec === 'string'
         };
       } catch (_) {
@@ -148,6 +152,13 @@ async function restore(backupId, Logger) {
     results.processPriority = await processPriority.restoreState(state.processPriority, Logger);
     if (!results.processPriority.success) anyFailed = true;
     if (Logger) Logger.info('backup', `Prioridade de processo restaurada a partir do backup ${backupId}`, results.processPriority);
+  }
+
+  if (state && state.powerPlan && state.powerPlan.guid) {
+    anyAttempted = true;
+    results.powerPlan = await powerPlanManager.restoreState(state.powerPlan, Logger);
+    if (!results.powerPlan.success) anyFailed = true;
+    if (Logger) Logger.info('backup', `Plano de energia restaurado a partir do backup ${backupId}`, results.powerPlan);
   }
 
   if (state && typeof state.cs2Autoexec === 'string') {

@@ -1,6 +1,7 @@
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setPowerPlan');
 jest.mock('../../../src/app/modules/backup');
 
 const backup = require('../../../src/app/modules/backup');
@@ -9,6 +10,7 @@ backup.createSnapshot = jest.fn().mockResolvedValue({ success: true, id: 'backup
 const disableUnnecessaryServices = require('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
 const cleanSystemCache = require('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
 const boostProcessPriority = require('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
+const setPowerPlan = require('../../../src/app/modules/windowsTweaks/tweaks/setPowerPlan');
 
 // jest.mock em módulos com apenas funções nomeadas (sem export default) não
 // preserva id/name/description automaticamente — repõe os campos estáticos
@@ -22,6 +24,9 @@ cleanSystemCache.description = 'desc';
 boostProcessPriority.id = 'boost-process-priority';
 boostProcessPriority.name = 'Aumentar Prioridade de Processo';
 boostProcessPriority.description = 'desc';
+setPowerPlan.id = 'power-plan';
+setPowerPlan.name = 'Power Plan';
+setPowerPlan.description = 'desc';
 
 const windowsTweaks = require('../../../src/app/modules/windowsTweaks');
 
@@ -38,14 +43,14 @@ describe('windowsTweaks/index', () => {
     expect(ids).toEqual(
       expect.arrayContaining([
         'game-mode',
-        'power-plan',
         'ssd-optimize',
         'explorer-tweaks',
         'network-tweaks',
         'amd-specific',
         'disable-unnecessary-services',
         'clean-system-cache',
-        'boost-process-priority'
+        'boost-process-priority',
+        'power-plan'
       ])
     );
   });
@@ -113,6 +118,10 @@ describe('windowsTweaks/index', () => {
     const priority = status.find((s) => s.id === 'boost-process-priority');
     expect(priority.implemented).toBe(true);
     expect(priority.reversible).toBe(true);
+
+    const powerPlan = status.find((s) => s.id === 'power-plan');
+    expect(powerPlan.implemented).toBe(true);
+    expect(powerPlan.reversible).toBe(true);
 
     const legacy = status.find((s) => s.id === 'game-mode');
     expect(legacy.implemented).toBe(false);

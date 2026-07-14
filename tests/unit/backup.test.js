@@ -19,6 +19,11 @@ jest.mock('../../src/app/modules/windowsTweaks/components/processPriority', () =
   normalizeProcessName: (n) => String(n || '').replace(/\.exe$/i, '')
 }));
 
+jest.mock('../../src/app/modules/windowsTweaks/components/powerPlanManager', () => ({
+  captureState: jest.fn(),
+  restoreState: jest.fn()
+}));
+
 jest.mock('../../src/app/modules/cs2Config', () => ({
   getAutoexec: jest.fn(),
   saveAutoexec: jest.fn()
@@ -26,6 +31,7 @@ jest.mock('../../src/app/modules/cs2Config', () => ({
 
 const serviceManager = require('../../src/app/modules/windowsTweaks/components/serviceManager');
 const processPriority = require('../../src/app/modules/windowsTweaks/components/processPriority');
+const powerPlanManager = require('../../src/app/modules/windowsTweaks/components/powerPlanManager');
 const cs2Config = require('../../src/app/modules/cs2Config');
 
 function makeLogger() {
@@ -68,9 +74,10 @@ describe('backup module', () => {
     expect(saved.state.processPriority).toBeNull();
   });
 
-  test('create() gera um backup manual completo capturando serviços, prioridade e autoexec', async () => {
+  test('create() gera um backup manual completo capturando serviços, prioridade, plano de energia e autoexec', async () => {
     serviceManager.captureServicesState.mockResolvedValue([{ name: 'SysMain', startType: 'Automatic', status: 'Running' }]);
     processPriority.captureState.mockResolvedValue({ name: 'cs2', priority: 'Normal' });
+    powerPlanManager.captureState.mockResolvedValue({ guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' });
     cs2Config.getAutoexec.mockResolvedValue('cl_crosshairstyle 4');
 
     const backup = loadBackup();
@@ -82,6 +89,7 @@ describe('backup module', () => {
     expect(saved.type).toBe('manual');
     expect(saved.state.services).toHaveLength(1);
     expect(saved.state.processPriority).toMatchObject({ name: 'cs2', priority: 'Normal' });
+    expect(saved.state.powerPlan).toMatchObject({ guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' });
     expect(saved.state.cs2Autoexec).toBe('cl_crosshairstyle 4');
   });
 
@@ -104,9 +112,10 @@ describe('backup module', () => {
     expect(result.error).toMatch(/não encontrado/);
   });
 
-  test('restore() reaplica serviços, prioridade e autoexec a partir do snapshot', async () => {
+  test('restore() reaplica serviços, prioridade, plano de energia e autoexec a partir do snapshot', async () => {
     serviceManager.restoreServicesState.mockResolvedValue({ results: [{ name: 'SysMain', success: true }], restoredCount: 1, total: 1 });
     processPriority.restoreState.mockResolvedValue({ success: true, name: 'cs2', priority: 'Normal' });
+    powerPlanManager.restoreState.mockResolvedValue({ success: true, guid: '381b4222-f694-41f0-9685-ff5bb260df2e' });
     cs2Config.saveAutoexec.mockResolvedValue({ success: true });
 
     const backup = loadBackup();
@@ -116,6 +125,7 @@ describe('backup module', () => {
       state: {
         services: [{ name: 'SysMain', startType: 'Automatic', status: 'Running' }],
         processPriority: { name: 'cs2', priority: 'Normal' },
+        powerPlan: { guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' },
         cs2Autoexec: 'cl_crosshairstyle 4'
       }
     });
@@ -128,6 +138,10 @@ describe('backup module', () => {
       expect.anything()
     );
     expect(processPriority.restoreState).toHaveBeenCalledWith({ name: 'cs2', priority: 'Normal' }, expect.anything());
+    expect(powerPlanManager.restoreState).toHaveBeenCalledWith(
+      { guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' },
+      expect.anything()
+    );
     expect(cs2Config.saveAutoexec).toHaveBeenCalledWith('cl_crosshairstyle 4');
   });
 
