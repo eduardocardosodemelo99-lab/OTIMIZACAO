@@ -76,6 +76,10 @@
       <section id="view-benchmark" class="view glass-panel d-none">
         <h2>Benchmark</h2>
         <p class="text-muted">Average FPS, 1% low, 0.1% low, Frame Time.</p>
+        <div id="presentmon-banner" class="presentmon-banner d-none">
+          <span class="presentmon-banner-text">⚠️ PresentMon não encontrado na pasta <code>tools/</code>. Ele é necessário para capturar os frame times reais do CS2.</span>
+          <button id="btn-download-presentmon" class="btn btn-cs2 presentmon-download-btn">Baixar PresentMon</button>
+        </div>
         <div class="mb-2">
           <label for="benchmark-duration" class="text-muted">Duração (segundos):</label>
           <input id="benchmark-duration" type="number" min="10" max="600" value="60" class="benchmark-duration-input" />

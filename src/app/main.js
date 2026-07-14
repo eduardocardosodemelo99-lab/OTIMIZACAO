@@ -17,7 +17,7 @@ const { registerScannerHandlers } = require('./modules/scanner');
 const { registerWindowsHandlers } = require('./modules/windowsTweaks');
 const { registerProfilesHandlers } = require('./modules/profiles');
 const { registerCs2Handlers } = require('./modules/cs2Config');
-const { registerBenchmarkHandlers } = require('./modules/benchmark');
+const { registerBenchmarkHandlers, checkPresentMonStatus } = require('./modules/benchmark');
 const { registerBackupHandlers } = require('./modules/backup');
 
 const isDev = process.argv.includes('--dev');
@@ -81,6 +81,17 @@ app.whenReady().then(() => {
   registerBackupHandlers(ipcMain, Logger);
 
   createMainWindow();
+
+  // Verifica na inicialização se o PresentMon está instalado (necessário
+  // para o módulo Benchmark) e avisa a UI assim que a janela carregar.
+  mainWindow.webContents.once('did-finish-load', async () => {
+    try {
+      const status = await checkPresentMonStatus(Logger);
+      mainWindow.webContents.send('benchmark:presentMonStatus', status);
+    } catch (err) {
+      Logger.warn('main', `Falha ao checar PresentMon na inicialização: ${err.message}`);
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

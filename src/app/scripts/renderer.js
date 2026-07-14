@@ -18,7 +18,10 @@ function switchView(viewId) {
   if (viewId === 'windows') loadWindowsTweaks();
   if (viewId === 'profiles') loadProfiles();
   if (viewId === 'cs2') loadCs2Autoexec();
-  if (viewId === 'benchmark') loadBenchmarkHistory();
+  if (viewId === 'benchmark') {
+    loadBenchmarkHistory();
+    checkPresentMonStatus();
+  }
 }
 
 document.querySelectorAll('.nav-link').forEach((btn) => {
@@ -206,6 +209,48 @@ document.getElementById('btn-save-autoexec').addEventListener('click', async () 
   });
 });
 
+// ---------------------------------------------------------------------------
+// Verificação do PresentMon (necessário para o Benchmark)
+// ---------------------------------------------------------------------------
+
+let presentMonDownloadUrl = 'https://github.com/GameTechDev/PresentMon/releases/latest';
+
+function renderPresentMonBanner(status) {
+  const banner = document.getElementById('presentmon-banner');
+  const startBtn = document.getElementById('btn-start-benchmark');
+  if (!banner || !status) return;
+
+  if (status.downloadUrl) presentMonDownloadUrl = status.downloadUrl;
+
+  if (status.installed) {
+    banner.classList.add('d-none');
+    if (startBtn) startBtn.disabled = false;
+  } else {
+    banner.classList.remove('d-none');
+    if (startBtn) startBtn.disabled = true;
+  }
+}
+
+async function checkPresentMonStatus() {
+  try {
+    const status = await window.cs2app.benchmark.checkPresentMon();
+    renderPresentMonBanner(status);
+    return status;
+  } catch (err) {
+    return null;
+  }
+}
+
+document.getElementById('btn-download-presentmon')?.addEventListener('click', () => {
+  window.cs2app.app.openExternal(presentMonDownloadUrl);
+});
+
+// Recebe o resultado da checagem feita automaticamente pelo processo principal
+// na inicialização da app.
+window.cs2app.benchmark.onPresentMonStatus((status) => {
+  renderPresentMonBanner(status);
+});
+
 let benchmarkChart = null;
 
 const BENCHMARK_STAGE_LABELS = {
@@ -317,3 +362,4 @@ document.getElementById('btn-start-benchmark').addEventListener('click', async (
 
 // Carrega o Dashboard ao iniciar
 loadDashboard();
+checkPresentMonStatus();

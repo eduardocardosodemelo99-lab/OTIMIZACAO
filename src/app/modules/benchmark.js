@@ -152,6 +152,40 @@ async function findPresentMonExecutable() {
   }
 }
 
+const PRESENTMON_DOWNLOAD_URL = 'https://github.com/GameTechDev/PresentMon/releases/latest';
+
+/** Verifica se o PresentMon está instalado na pasta tools/ do projeto.
+ * Usado na inicialização da app (e sob demanda) para avisar o usuário e
+ * oferecer o link de download direto caso não esteja presente. Função
+ * segura em qualquer plataforma/SO — nunca lança, apenas reporta status. */
+async function checkPresentMonStatus(Logger) {
+  try {
+    await fsp.mkdir(TOOLS_DIR, { recursive: true });
+  } catch (err) {
+    if (Logger) Logger.warn('benchmark', `Não foi possível garantir a pasta tools/: ${err.message}`);
+  }
+
+  const presentMonPath = await findPresentMonExecutable();
+  const installed = Boolean(presentMonPath);
+
+  const status = {
+    installed,
+    path: presentMonPath,
+    toolsDir: TOOLS_DIR,
+    downloadUrl: PRESENTMON_DOWNLOAD_URL
+  };
+
+  if (Logger) {
+    if (installed) {
+      Logger.info('benchmark', `PresentMon encontrado em ${presentMonPath}`);
+    } else {
+      Logger.warn('benchmark', `PresentMon não encontrado em ${TOOLS_DIR}. Download: ${PRESENTMON_DOWNLOAD_URL}`);
+    }
+  }
+
+  return status;
+}
+
 /** Executa o PresentMon filtrando pelo processo do CS2 e gravando um CSV
  * com uma linha por frame apresentado. Resolve quando a captura termina. */
 function runPresentMonCapture({ presentMonPath, processName, durationSeconds, outputCsvPath }) {
@@ -355,6 +389,8 @@ function registerBenchmarkHandlers(ipcMain, Logger) {
   });
 
   ipcMain.handle('benchmark:getHistory', async () => getHistory());
+
+  ipcMain.handle('benchmark:checkPresentMon', async () => checkPresentMonStatus(Logger));
 }
 
 module.exports = {
@@ -365,6 +401,8 @@ module.exports = {
   buildCs2PathForLibrary,
   findCs2Executable,
   findPresentMonExecutable,
+  checkPresentMonStatus,
+  PRESENTMON_DOWNLOAD_URL,
   start,
   getHistory
 };

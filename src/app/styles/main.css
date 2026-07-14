@@ -265,6 +265,34 @@ html, body {
   color: #ff8080;
 }
 
+.presentmon-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 61, 61, 0.1);
+  border: 1px solid rgba(255, 61, 61, 0.35);
+  color: #ff9a9a;
+  font-size: 13px;
+}
+
+.presentmon-banner-text code {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #ffb066;
+}
+
+.presentmon-download-btn {
+  white-space: nowrap;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
 .tweak-item, .profile-item {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-glass);

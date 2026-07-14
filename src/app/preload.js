@@ -44,7 +44,9 @@ contextBridge.exposeInMainWorld('cs2app', {
   benchmark: {
     start: (options) => ipcRenderer.invoke('benchmark:start', options),
     onSample: (callback) => ipcRenderer.on('benchmark:sample', (_e, data) => callback(data)),
-    getHistory: () => ipcRenderer.invoke('benchmark:getHistory')
+    getHistory: () => ipcRenderer.invoke('benchmark:getHistory'),
+    checkPresentMon: () => ipcRenderer.invoke('benchmark:checkPresentMon'),
+    onPresentMonStatus: (callback) => ipcRenderer.on('benchmark:presentMonStatus', (_e, data) => callback(data))
   },
 
   backup: {
