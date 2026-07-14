@@ -70,8 +70,9 @@ npm start
 ```
 
 <!-- LATEST_BUILD_START -->
-> 📦 **Último build:** ainda não gerado — assim que o primeiro workflow rodar após esta
-> alteração, este bloco será atualizado automaticamente com o link do build mais recente.
+> 📦 **Último build:** [`45a6f2d`](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/commit/45a6f2d738be9af275a825ecb964337c48dc5e5b) — gerado em 2026-07-14 05:23:07 UTC
+>
+> 👉 [Abrir o run e baixar o instalador em "Artifacts"](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/actions/runs/29308323914)
 <!-- LATEST_BUILD_END -->
 
 ## ⚠️ Como baixar e instalar o programa (leia antes de instalar)
