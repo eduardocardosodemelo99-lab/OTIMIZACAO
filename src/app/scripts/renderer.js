@@ -238,7 +238,7 @@ function formatTweakResult(tweakId, result) {
   }
   if (tweakId === 'disable-unnecessary-services') {
     const rows = (result.results || [])
-      .map((r) => `<li>${r.success ? '✅' : '❌'} ${r.name}${r.error ? ` — <span class="text-muted">${r.error}</span>` : ''}</li>`)
+      .map((r) => `<li><svg class="inline-icon ${r.success ? 'icon-ok' : 'icon-fail'}"><use href="#${r.success ? 'icon-check' : 'icon-cross'}"/></svg> ${r.name}${r.error ? ` — <span class="text-muted">${r.error}</span>` : ''}</li>`)
       .join('');
     return `<p>${result.disabledCount}/${result.total} serviços desabilitados</p><ul style="text-align:left; padding-left:18px;">${rows}</ul>`;
   }
@@ -283,7 +283,7 @@ async function loadWindowsTweaks() {
 
   const banner = isWindows
     ? ''
-    : `<div class="presentmon-banner"><span class="presentmon-banner-text">⚠️ Este ambiente não é Windows — os ajustes reais (serviços, cache, prioridade) serão simulados e nada será alterado de verdade.</span></div>`;
+    : `<div class="presentmon-banner"><span class="presentmon-banner-text"><svg class="inline-icon"><use href="#icon-warning"/></svg> Este ambiente não é Windows — os ajustes reais (serviços, cache, prioridade) serão simulados e nada será alterado de verdade.</span></div>`;
 
   container.innerHTML = banner + tweaks.map(renderTweakItem).join('');
   attachWindowsTweaksHandlers(container);

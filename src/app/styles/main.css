@@ -113,6 +113,9 @@ html, body {
 
 .nav-link {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-align: left;
   background: transparent;
   border: none;
@@ -121,7 +124,7 @@ html, body {
   border-radius: 10px;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-link:hover {
@@ -129,10 +132,53 @@ html, body {
   color: var(--text-primary);
 }
 
+.nav-link:hover .nav-icon {
+  transform: translateX(1px);
+}
+
 .nav-link.active {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-link.active .nav-icon {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent-soft));
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: inherit;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.inline-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-right: 2px;
+}
+
+.inline-icon.icon-ok {
+  color: #3ddc84;
+}
+
+.inline-icon.icon-fail {
+  color: #ff5a5a;
 }
 
 #content {
