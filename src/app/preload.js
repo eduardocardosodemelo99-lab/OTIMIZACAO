@@ -20,7 +20,8 @@ contextBridge.exposeInMainWorld('cs2app', {
   },
 
   scanner: {
-    runFullScan: () => ipcRenderer.invoke('scanner:runFullScan')
+    runFullScan: () => ipcRenderer.invoke('scanner:runFullScan'),
+    cleanCategory: (categoryKey) => ipcRenderer.invoke('scanner:cleanCategory', categoryKey)
   },
 
   windowsTweaks: {

@@ -37,17 +37,100 @@ async function loadDashboard() {
   `;
 }
 
-document.getElementById('btn-run-scan').addEventListener('click', async () => {
-  const result = await window.cs2app.scanner.runFullScan();
-  document.getElementById('scanner-result').textContent = JSON.stringify(result, null, 2);
-  Swal.fire({
-    icon: 'success',
-    title: 'Scan concluído',
-    background: '#14171f',
-    color: '#f1f2f4',
-    confirmButtonColor: '#ff6a00'
+function formatMB(mb) {
+  if (mb == null) return '--';
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function renderScannerCategories(categories) {
+  const container = document.getElementById('scanner-categories');
+  container.innerHTML = categories
+    .map(
+      (c) => `
+      <div class="tweak-item" data-category="${c.key}">
+        <strong>${c.label}</strong>
+        <span class="text-muted">${c.description}</span>
+        <span class="badge-size">${formatMB(c.totalSizeMB)} · ${c.totalFiles} arquivos</span>
+        <button class="btn btn-cs2 btn-sm" data-clean="${c.key}">Limpar</button>
+      </div>`
+    )
+    .join('');
+
+  container.querySelectorAll('button[data-clean]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Limpando...';
+      try {
+        const result = await window.cs2app.scanner.cleanCategory(btn.dataset.clean);
+        Swal.fire({
+          icon: 'success',
+          title: `${result.label} limpo`,
+          text: `${formatMB(result.freedMB)} liberados · ${result.deletedFiles} arquivos removidos${result.skipped ? ` · ${result.skipped} ignorados` : ''}`,
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+        await runScan();
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Falha ao limpar',
+          text: err.message,
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Limpar';
+      }
+    });
   });
-});
+}
+
+async function runScan() {
+  const btn = document.getElementById('btn-run-scan');
+  btn.disabled = true;
+  btn.textContent = 'Escaneando...';
+  try {
+    const result = await window.cs2app.scanner.runFullScan();
+    document.getElementById('scanner-result').textContent = JSON.stringify(result, null, 2);
+
+    const summary = document.getElementById('scanner-summary');
+    summary.classList.remove('d-none');
+    summary.innerHTML = `
+      <span>CPU: <strong>${result.cpuFamily || 'Não identificado'}</strong></span>
+      <span>GPU: <strong>${result.gpuFamily || 'Não identificado'}</strong></span>
+      <span>Armazenamento: <strong>${result.storageType || 'Não identificado'}</strong></span>
+      <span>Espaço recuperável: <strong>${formatMB(result.cleanup.totalReclaimableMB)}</strong></span>
+    `;
+
+    renderScannerCategories(result.cleanup.categories);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Scan concluído',
+      background: '#14171f',
+      color: '#f1f2f4',
+      confirmButtonColor: '#ff6a00'
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Falha no scan',
+      text: err.message,
+      background: '#14171f',
+      color: '#f1f2f4',
+      confirmButtonColor: '#ff6a00'
+    });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Executar Scan Completo';
+  }
+}
+
+document.getElementById('btn-run-scan').addEventListener('click', runScan);
 
 async function loadWindowsTweaks() {
   const tweaks = await window.cs2app.windowsTweaks.listStatus();
