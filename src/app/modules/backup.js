@@ -1,12 +1,17 @@
 /**
  * Módulo Backup / Restore
- * Salva o estado de configurações do Windows/CS2 antes de aplicar tweaks,
- * permitindo reverter tudo com um clique.
+ * Salva o estado real de configurações do Windows/CS2 (serviços, prioridade
+ * de processo, autoexec do CS2) antes de aplicar tweaks, permitindo reverter
+ * tudo com um clique — inclusive os snapshots automáticos criados pelo
+ * módulo Windows Tweaks antes de cada alteração real no sistema.
  */
 
 const fs = require('fs');
 const path = require('path');
 const paths = require('./paths');
+const serviceManager = require('./windowsTweaks/components/serviceManager');
+const processPriority = require('./windowsTweaks/components/processPriority');
+const cs2Config = require('./cs2Config');
 
 function getBackupDir() {
   return paths.getBackupDir();
@@ -20,18 +25,70 @@ function ensureBackupDir() {
   return dir;
 }
 
-async function create() {
+function writeSnapshot(snapshot) {
   ensureBackupDir();
-  const id = `backup-${Date.now()}`;
+  const filePath = path.join(getBackupDir(), `${snapshot.id}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2), 'utf8');
+  return filePath;
+}
+
+function readSnapshot(id) {
   const filePath = path.join(getBackupDir(), `${id}.json`);
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Cria um snapshot automático capturando o estado real de um aspecto
+ * específico do sistema (ex.: serviços antes de desabilitá-los, prioridade
+ * de processo antes de elevá-la). Chamado pelo módulo Windows Tweaks logo
+ * antes de aplicar um tweak real, para permitir reversão exata via restore().
+ */
+async function createSnapshot({ label, tweakId, state }) {
+  const id = `backup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const snapshot = {
     id,
     createdAt: new Date().toISOString(),
-    windowsTweaks: {},
-    cs2Config: {}
+    type: 'auto',
+    tweakId: tweakId || null,
+    label: label || tweakId || 'Snapshot automático',
+    state: {
+      services: (state && state.services) || null,
+      processPriority: (state && state.processPriority) || null,
+      cs2Autoexec: (state && state.cs2Autoexec) || null
+    }
   };
-  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2), 'utf8');
-  return { success: true, id, filePath };
+  writeSnapshot(snapshot);
+  return { success: true, id, filePath: path.join(getBackupDir(), `${id}.json`) };
+}
+
+/**
+ * Cria um backup manual completo: captura o estado atual de todos os
+ * serviços conhecidos, a prioridade do processo padrão do CS2 e o conteúdo
+ * atual do autoexec.cfg — tudo em um único snapshot restaurável.
+ */
+async function create() {
+  const [services, procPriority, cs2Autoexec] = await Promise.all([
+    serviceManager.captureServicesState(),
+    processPriority.captureState(processPriority.normalizeProcessName('cs2')),
+    cs2Config.getAutoexec().catch(() => '')
+  ]);
+
+  const id = `backup-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const snapshot = {
+    id,
+    createdAt: new Date().toISOString(),
+    type: 'manual',
+    tweakId: null,
+    label: 'Backup manual completo',
+    state: { services, processPriority: procPriority, cs2Autoexec }
+  };
+  writeSnapshot(snapshot);
+  return { success: true, id, filePath: path.join(getBackupDir(), `${id}.json`) };
 }
 
 async function list() {
@@ -42,31 +99,90 @@ async function list() {
     .filter((f) => f.endsWith('.json'))
     .map((f) => {
       const filePath = path.join(dir, f);
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      return { id: data.id, createdAt: data.createdAt };
-    });
+      try {
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return {
+          id: data.id,
+          createdAt: data.createdAt,
+          type: data.type || 'manual',
+          tweakId: data.tweakId || null,
+          label: data.label || 'Backup',
+          hasServices: Boolean(data.state && data.state.services),
+          hasProcessPriority: Boolean(data.state && data.state.processPriority),
+          hasCs2Autoexec: data.state && typeof data.state.cs2Autoexec === 'string'
+        };
+      } catch (_) {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
-async function restore(backupId) {
-  ensureBackupDir();
-  const filePath = path.join(getBackupDir(), `${backupId}.json`);
-  if (!fs.existsSync(filePath)) {
+/**
+ * Restaura um snapshot: reaplica de verdade cada aspecto capturado
+ * (serviços via Set-Service/Start-Service, prioridade de processo via
+ * Get-Process, autoexec.cfg via escrita direta do conteúdo anterior).
+ * Aspectos não presentes no snapshot (null) são ignorados.
+ */
+async function restore(backupId, Logger) {
+  const snapshot = readSnapshot(backupId);
+  if (!snapshot) {
     return { success: false, error: `Backup não encontrado: ${backupId}` };
   }
-  // TODO: reaplicar snapshot real (windowsTweaks + cs2Config) na próxima etapa
-  return { success: true, restoredFrom: backupId, restoredAt: new Date().toISOString() };
+
+  const { state } = snapshot;
+  const results = {};
+  let anyAttempted = false;
+  let anyFailed = false;
+
+  if (state && state.services && state.services.length) {
+    anyAttempted = true;
+    results.services = await serviceManager.restoreServicesState(state.services, Logger);
+    if (results.services.restoredCount < results.services.total) anyFailed = true;
+    if (Logger) Logger.info('backup', `Serviços restaurados a partir do backup ${backupId}`, results.services);
+  }
+
+  if (state && state.processPriority) {
+    anyAttempted = true;
+    results.processPriority = await processPriority.restoreState(state.processPriority, Logger);
+    if (!results.processPriority.success) anyFailed = true;
+    if (Logger) Logger.info('backup', `Prioridade de processo restaurada a partir do backup ${backupId}`, results.processPriority);
+  }
+
+  if (state && typeof state.cs2Autoexec === 'string') {
+    anyAttempted = true;
+    try {
+      results.cs2Autoexec = await cs2Config.saveAutoexec(state.cs2Autoexec);
+    } catch (err) {
+      anyFailed = true;
+      results.cs2Autoexec = { success: false, error: err.message };
+    }
+    if (Logger) Logger.info('backup', `autoexec.cfg restaurado a partir do backup ${backupId}`);
+  }
+
+  if (!anyAttempted) {
+    return { success: false, error: 'Backup não contém dados restauráveis.', restoredFrom: backupId };
+  }
+
+  return {
+    success: !anyFailed,
+    restoredFrom: backupId,
+    restoredAt: new Date().toISOString(),
+    results
+  };
 }
 
 function registerBackupHandlers(ipcMain, Logger) {
   ipcMain.handle('backup:create', async () => {
-    Logger.info('backup', 'Criando backup de configurações');
+    Logger.info('backup', 'Criando backup manual completo de configurações');
     return create();
   });
   ipcMain.handle('backup:list', async () => list());
   ipcMain.handle('backup:restore', async (_evt, backupId) => {
     Logger.info('backup', `Restaurando backup: ${backupId}`);
-    return restore(backupId);
+    return restore(backupId, Logger);
   });
 }
 
-module.exports = { registerBackupHandlers, create, list, restore };
+module.exports = { registerBackupHandlers, create, createSnapshot, list, restore };

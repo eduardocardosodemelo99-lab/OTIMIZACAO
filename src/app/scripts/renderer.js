@@ -16,6 +16,7 @@ function switchView(viewId) {
 
   if (viewId === 'dashboard') loadDashboard();
   if (viewId === 'windows') loadWindowsTweaks();
+  if (viewId === 'backups') loadBackups();
   if (viewId === 'profiles') loadProfiles();
   if (viewId === 'cs2') loadCs2Autoexec();
   if (viewId === 'benchmark') {
@@ -320,8 +321,11 @@ async function handleApplyTweak(tweakId) {
       swalWarning('Tweak não aplicado', (result && result.error) || 'Verifique os logs para mais detalhes.');
       windowsTweaksState[tweakId] = { applied: false, lastMessageHtml: formatTweakResult(tweakId, result || {}) };
     } else {
-      windowsTweaksState[tweakId] = { applied: true, lastMessageHtml: formatTweakResult(tweakId, result) };
-      swalSuccess('Tweak aplicado com sucesso', formatTweakResult(tweakId, result));
+      windowsTweaksState[tweakId] = { applied: true, lastMessageHtml: formatTweakResult(tweakId, result), backupId: result.backupId || null };
+      const backupNote = result.backupId
+        ? '<p class="text-muted" style="margin-top:8px;">Um snapshot foi salvo em <strong>Backups</strong> antes desta alteração — você pode restaurá-lo a qualquer momento.</p>'
+        : '';
+      swalSuccess('Tweak aplicado com sucesso', formatTweakResult(tweakId, result) + backupNote);
     }
   } catch (err) {
     swalError('Falha ao aplicar tweak', err.message);
@@ -590,6 +594,108 @@ document.getElementById('btn-start-benchmark').addEventListener('click', async (
   } finally {
     btn.disabled = false;
     btn.textContent = 'Iniciar Benchmark';
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Backups: histórico e recuperação (snapshots automáticos + manuais)
+// ---------------------------------------------------------------------------
+
+function backupBadge(backup) {
+  return backup.type === 'auto'
+    ? '<span class="tweak-badge tweak-badge-real">Automático</span>'
+    : '<span class="tweak-badge tweak-badge-soon">Manual</span>';
+}
+
+function backupContentsSummary(backup) {
+  const parts = [];
+  if (backup.hasServices) parts.push('Serviços');
+  if (backup.hasProcessPriority) parts.push('Prioridade de processo');
+  if (backup.hasCs2Autoexec) parts.push('Autoexec do CS2');
+  return parts.length ? parts.join(' · ') : 'Sem dados restauráveis';
+}
+
+function renderBackupItem(backup) {
+  return `
+    <div class="tweak-item" data-backup-item="${backup.id}">
+      <div class="tweak-item-header">
+        <strong>${backup.label}</strong>
+        ${backupBadge(backup)}
+      </div>
+      <span class="text-muted">${new Date(backup.createdAt).toLocaleString('pt-BR')}</span>
+      <span class="badge-size">${backupContentsSummary(backup)}</span>
+      <div class="tweak-actions">
+        <button class="btn btn-outline-cs2 btn-sm" data-backup-restore="${backup.id}">Restaurar</button>
+      </div>
+    </div>`;
+}
+
+async function loadBackups() {
+  const container = document.getElementById('backups-list');
+  const backups = await window.cs2app.backup.list();
+  if (!backups || backups.length === 0) {
+    container.innerHTML = '<p class="text-muted">Nenhum backup ainda. Snapshots são criados automaticamente antes de cada tweak real, ou você pode criar um manual acima.</p>';
+    return;
+  }
+  container.innerHTML = backups.map(renderBackupItem).join('');
+  container.querySelectorAll('button[data-backup-restore]').forEach((btn) => {
+    btn.addEventListener('click', () => handleRestoreBackup(btn.dataset.backupRestore));
+  });
+}
+
+async function handleRestoreBackup(backupId) {
+  const confirmResult = await swalConfirm({
+    title: 'Restaurar este backup?',
+    html: '<p class="text-muted" style="text-align:left">Isso reaplica de verdade o estado salvo (serviços, prioridade de processo e/ou autoexec do CS2), sobrescrevendo as configurações atuais.</p>',
+    confirmButtonText: 'Restaurar',
+    icon: 'question'
+  });
+  if (!confirmResult.isConfirmed) return;
+
+  const btn = document.querySelector(`button[data-backup-restore="${backupId}"]`);
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Restaurando...';
+  }
+
+  try {
+    const result = await window.cs2app.backup.restore(backupId);
+    if (!result || result.success === false) {
+      swalWarning('Restauração incompleta ou falhou', (result && result.error) || 'Verifique os logs para mais detalhes.');
+    } else {
+      Object.keys(windowsTweaksState).forEach((key) => delete windowsTweaksState[key]);
+      swalSuccess('Backup restaurado', '<p class="text-muted">O estado salvo foi reaplicado com sucesso.</p>');
+    }
+  } catch (err) {
+    swalError('Falha ao restaurar backup', err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+    loadBackups();
+  }
+}
+
+document.getElementById('btn-create-backup').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-create-backup');
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Criando...';
+  try {
+    const result = await window.cs2app.backup.create();
+    if (!result || result.success === false) {
+      swalWarning('Falha ao criar backup', (result && result.error) || 'Verifique os logs para mais detalhes.');
+    } else {
+      swalSuccess('Backup criado', '<p class="text-muted">Serviços, prioridade de processo e autoexec do CS2 foram salvos.</p>');
+    }
+  } catch (err) {
+    swalError('Falha ao criar backup', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    loadBackups();
   }
 });
 

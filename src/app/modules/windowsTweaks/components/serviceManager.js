@@ -71,6 +71,58 @@ async function enableServices(serviceNames, Logger) {
   return { results, enabledCount: results.filter((r) => r.success).length, total: targets.length };
 }
 
+/** Captura o estado real atual (StartType + Status) de um serviço, para que
+ * possa ser restaurado exatamente como estava antes de um tweak. */
+async function getServiceState(serviceName) {
+  const result = await runPowerShell(
+    `Get-Service -Name '${serviceName}' -ErrorAction Stop | Select-Object Status,StartType | ConvertTo-Json -Compress`
+  );
+  if (!result.success) {
+    return { name: serviceName, startType: null, status: null, skipped: result.skipped, reason: result.reason };
+  }
+  try {
+    const parsed = JSON.parse(result.stdout.trim());
+    return { name: serviceName, startType: parsed.StartType || null, status: parsed.Status || null };
+  } catch (_) {
+    return { name: serviceName, startType: null, status: null };
+  }
+}
+
+/** Captura o estado de vários serviços de uma vez (usado para criar um
+ * snapshot de backup antes de desabilitá-los). */
+async function captureServicesState(serviceNames) {
+  const targets = serviceNames && serviceNames.length ? serviceNames : defaultServiceNames();
+  const states = [];
+  for (const name of targets) {
+    // eslint-disable-next-line no-await-in-loop
+    states.push(await getServiceState(name));
+  }
+  return states;
+}
+
+/** Restaura serviços para o StartType/Status exatos capturados em um
+ * snapshot anterior (rollback real, em vez do padrão genérico 'Manual'). */
+async function restoreServicesState(states, Logger) {
+  const targets = states || [];
+  const results = [];
+  for (const s of targets) {
+    if (!s || !s.startType) {
+      results.push({ name: s && s.name, success: false, skipped: true, reason: 'no-captured-state' });
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+    const startCmd = s.status === 'Running' ? `; Start-Service -Name '${s.name}' -ErrorAction SilentlyContinue` : '';
+    // eslint-disable-next-line no-await-in-loop
+    const result = await runPowerShell(`Set-Service -Name '${s.name}' -StartupType ${s.startType}${startCmd}`);
+    if (Logger) {
+      if (result.success) Logger.info('serviceManager', `Serviço restaurado: ${s.name} -> ${s.startType}`);
+      else Logger.warn('serviceManager', `Falha ao restaurar serviço ${s.name}`, { detail: result.error || result.reason });
+    }
+    results.push({ name: s.name, startType: s.startType, ...result });
+  }
+  return { results, restoredCount: results.filter((r) => r.success).length, total: targets.length };
+}
+
 module.exports = {
   UNNECESSARY_SERVICES,
   defaultServiceNames,
@@ -78,5 +130,8 @@ module.exports = {
   disableService,
   enableService,
   disableServices,
-  enableServices
+  enableServices,
+  getServiceState,
+  captureServicesState,
+  restoreServicesState
 };

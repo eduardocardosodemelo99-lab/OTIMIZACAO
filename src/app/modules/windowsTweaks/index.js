@@ -13,6 +13,7 @@
 const serviceManager = require('./components/serviceManager');
 const cacheCleaner = require('./components/cacheCleaner');
 const processPriority = require('./components/processPriority');
+const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
 const cleanSystemCache = require('./tweaks/cleanSystemCache');
@@ -46,6 +47,21 @@ function findTweakDefinition(tweakId) {
   return AVAILABLE_TWEAKS.find((t) => t.id === tweakId);
 }
 
+/** Captura o estado atual do sistema para o aspecto afetado por um tweak,
+ * para que um snapshot de backup possa ser criado ANTES da alteração real —
+ * permitindo reversão exata depois, mesmo fora do fluxo padrão de revert(). */
+async function captureTweakPreState(tweakId, options) {
+  if (tweakId === 'disable-unnecessary-services') {
+    return { services: await serviceManager.captureServicesState(options.serviceNames) };
+  }
+  if (tweakId === 'boost-process-priority') {
+    const processName = processPriority.normalizeProcessName(options.processName || 'cs2');
+    return { processPriority: await processPriority.captureState(processName) };
+  }
+  // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
+  return null;
+}
+
 async function applyTweak(tweakId, Logger, options) {
   const tweak = findTweakDefinition(tweakId);
   if (!tweak) {
@@ -54,8 +70,14 @@ async function applyTweak(tweakId, Logger, options) {
 
   const implemented = findImplementedTweak(tweakId);
   if (implemented) {
+    let backupId = null;
+    const preState = await captureTweakPreState(tweakId, options || {});
+    if (preState) {
+      const snap = await backup.createSnapshot({ tweakId, label: tweak.name, state: preState });
+      if (snap.success) backupId = snap.id;
+    }
     const result = await implemented.apply(Logger, options || {});
-    return { tweakId, appliedAt: new Date().toISOString(), ...result };
+    return { tweakId, appliedAt: new Date().toISOString(), backupId, ...result };
   }
 
   // TODO: implementar aplicação real via PowerShell/registry na próxima etapa

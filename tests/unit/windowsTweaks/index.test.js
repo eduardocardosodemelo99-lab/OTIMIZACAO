@@ -1,6 +1,10 @@
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
+jest.mock('../../../src/app/modules/backup');
+
+const backup = require('../../../src/app/modules/backup');
+backup.createSnapshot = jest.fn().mockResolvedValue({ success: true, id: 'backup-test-id' });
 
 const disableUnnecessaryServices = require('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
 const cleanSystemCache = require('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
@@ -59,8 +63,19 @@ describe('windowsTweaks/index', () => {
     const result = await windowsTweaks.applyTweak('disable-unnecessary-services', Logger, { serviceNames: ['SysMain'] });
 
     expect(disableUnnecessaryServices.apply).toHaveBeenCalledWith(Logger, { serviceNames: ['SysMain'] });
-    expect(result).toMatchObject({ tweakId: 'disable-unnecessary-services', success: true, disabledCount: 6 });
+    expect(result).toMatchObject({ tweakId: 'disable-unnecessary-services', success: true, disabledCount: 6, backupId: 'backup-test-id' });
     expect(result.appliedAt).toBeDefined();
+    expect(backup.createSnapshot).toHaveBeenCalled();
+  });
+
+  test('applyTweak não cria snapshot de backup para clean-system-cache (não reversível)', async () => {
+    cleanSystemCache.apply.mockResolvedValue({ success: true, totalFreedMB: 12 });
+    const Logger = makeLogger();
+
+    const result = await windowsTweaks.applyTweak('clean-system-cache', Logger, {});
+
+    expect(backup.createSnapshot).not.toHaveBeenCalled();
+    expect(result.backupId).toBeNull();
   });
 
   test('applyTweak em tweak legado (sem implementação real) retorna o comportamento TODO padrão', async () => {

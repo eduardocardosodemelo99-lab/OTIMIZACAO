@@ -29,6 +29,7 @@
         <li><button class="nav-link" data-view="profiles">🎯 Perfis</button></li>
         <li><button class="nav-link" data-view="cs2">🎮 CS2</button></li>
         <li><button class="nav-link" data-view="benchmark">📈 Benchmark</button></li>
+        <li><button class="nav-link" data-view="backups">🛟 Backups</button></li>
         <li><button class="nav-link" data-view="logs">🗒️ Logs</button></li>
       </ul>
     </nav>
@@ -90,6 +91,13 @@
         <canvas id="benchmark-chart" height="120"></canvas>
         <h4 class="mt-4">Histórico</h4>
         <div id="benchmark-history" class="scanner-categories"></div>
+      </section>
+
+      <section id="view-backups" class="view glass-panel d-none">
+        <h2>Backups</h2>
+        <p class="text-muted">Snapshots automáticos (criados antes de cada tweak real) e backups manuais completos. Restaurar reaplica o estado exato salvo.</p>
+        <button id="btn-create-backup" class="btn btn-cs2">Criar Backup Manual Agora</button>
+        <div id="backups-list" class="tweak-list mt-3"></div>
       </section>
 
       <section id="view-logs" class="view glass-panel d-none">

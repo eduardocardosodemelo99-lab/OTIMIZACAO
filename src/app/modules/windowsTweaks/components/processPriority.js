@@ -50,4 +50,30 @@ async function setProcessPriority(processName, priority = 'High', Logger) {
   return { name, priority, ...result };
 }
 
-module.exports = { PRIORITY_LEVELS, isValidPriority, normalizeProcessName, getProcessPriority, setProcessPriority };
+/** Captura a prioridade atual de um processo, para permitir restaurá-la
+ * exatamente como estava antes de um tweak (em vez de sempre voltar para
+ * 'Normal'). */
+async function captureState(processName) {
+  const state = await getProcessPriority(processName);
+  return state;
+}
+
+/** Restaura a prioridade de um processo a partir de um estado capturado
+ * anteriormente. Se não houver prioridade capturada (processo não estava
+ * rodando, ou ambiente não-Windows), não faz nada. */
+async function restoreState(state, Logger) {
+  if (!state || !state.priority || !state.name) {
+    return { success: false, skipped: true, reason: 'no-captured-state' };
+  }
+  return setProcessPriority(state.name, state.priority, Logger);
+}
+
+module.exports = {
+  PRIORITY_LEVELS,
+  isValidPriority,
+  normalizeProcessName,
+  getProcessPriority,
+  setProcessPriority,
+  captureState,
+  restoreState
+};
