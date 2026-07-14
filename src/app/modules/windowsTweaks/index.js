@@ -15,6 +15,7 @@ const cacheCleaner = require('./components/cacheCleaner');
 const processPriority = require('./components/processPriority');
 const powerPlanManager = require('./components/powerPlanManager');
 const gameModeManager = require('./components/gameModeManager');
+const ssdOptimizeManager = require('./components/ssdOptimizeManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
@@ -22,19 +23,26 @@ const cleanSystemCache = require('./tweaks/cleanSystemCache');
 const boostProcessPriority = require('./tweaks/boostProcessPriority');
 const setPowerPlan = require('./tweaks/setPowerPlan');
 const setGameMode = require('./tweaks/setGameMode');
+const setSsdOptimize = require('./tweaks/setSsdOptimize');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
 // Perfis e a UI existente. Serão implementados em etapas futuras.
 const LEGACY_TWEAKS = [
-  { id: 'ssd-optimize', name: 'Otimização de SSD', description: 'Ajustes de TRIM e indexação' },
   { id: 'explorer-tweaks', name: 'Explorer', description: 'Reduz overhead visual do Explorer' },
   { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' },
   { id: 'amd-specific', name: 'AMD Specific', description: 'Ajustes específicos para CPUs/GPUs AMD' }
 ];
 
 // Tweaks com implementação real, construídos a partir dos componentes reutilizáveis.
-const IMPLEMENTED_TWEAKS = [disableUnnecessaryServices, cleanSystemCache, boostProcessPriority, setPowerPlan, setGameMode];
+const IMPLEMENTED_TWEAKS = [
+  disableUnnecessaryServices,
+  cleanSystemCache,
+  boostProcessPriority,
+  setPowerPlan,
+  setGameMode,
+  setSsdOptimize
+];
 
 const AVAILABLE_TWEAKS = [
   ...LEGACY_TWEAKS,
@@ -65,6 +73,9 @@ async function captureTweakPreState(tweakId, options) {
   }
   if (tweakId === 'game-mode') {
     return { gameMode: await gameModeManager.captureState() };
+  }
+  if (tweakId === 'ssd-optimize') {
+    return { ssdOptimize: await ssdOptimizeManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -151,5 +162,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager }
 };

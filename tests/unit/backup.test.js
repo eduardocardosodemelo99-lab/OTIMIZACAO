@@ -29,6 +29,11 @@ jest.mock('../../src/app/modules/windowsTweaks/components/gameModeManager', () =
   restoreState: jest.fn()
 }));
 
+jest.mock('../../src/app/modules/windowsTweaks/components/ssdOptimizeManager', () => ({
+  captureState: jest.fn(),
+  restoreState: jest.fn()
+}));
+
 jest.mock('../../src/app/modules/cs2Config', () => ({
   getAutoexec: jest.fn(),
   saveAutoexec: jest.fn()
@@ -38,6 +43,7 @@ const serviceManager = require('../../src/app/modules/windowsTweaks/components/s
 const processPriority = require('../../src/app/modules/windowsTweaks/components/processPriority');
 const powerPlanManager = require('../../src/app/modules/windowsTweaks/components/powerPlanManager');
 const gameModeManager = require('../../src/app/modules/windowsTweaks/components/gameModeManager');
+const ssdOptimizeManager = require('../../src/app/modules/windowsTweaks/components/ssdOptimizeManager');
 const cs2Config = require('../../src/app/modules/cs2Config');
 
 function makeLogger() {
@@ -85,6 +91,7 @@ describe('backup module', () => {
     processPriority.captureState.mockResolvedValue({ name: 'cs2', priority: 'Normal' });
     powerPlanManager.captureState.mockResolvedValue({ guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' });
     gameModeManager.captureState.mockResolvedValue({ enabled: false });
+    ssdOptimizeManager.captureState.mockResolvedValue({ trim: { trimEnabled: true }, indexing: { indexingEnabled: false }, drive: 'C:' });
     cs2Config.getAutoexec.mockResolvedValue('cl_crosshairstyle 4');
 
     const backup = loadBackup();
@@ -98,6 +105,7 @@ describe('backup module', () => {
     expect(saved.state.processPriority).toMatchObject({ name: 'cs2', priority: 'Normal' });
     expect(saved.state.powerPlan).toMatchObject({ guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' });
     expect(saved.state.gameMode).toMatchObject({ enabled: false });
+    expect(saved.state.ssdOptimize).toMatchObject({ trim: { trimEnabled: true }, indexing: { indexingEnabled: false } });
     expect(saved.state.cs2Autoexec).toBe('cl_crosshairstyle 4');
   });
 
@@ -125,6 +133,7 @@ describe('backup module', () => {
     processPriority.restoreState.mockResolvedValue({ success: true, name: 'cs2', priority: 'Normal' });
     powerPlanManager.restoreState.mockResolvedValue({ success: true, guid: '381b4222-f694-41f0-9685-ff5bb260df2e' });
     gameModeManager.restoreState.mockResolvedValue({ success: true, enabled: false });
+    ssdOptimizeManager.restoreState.mockResolvedValue({ success: true });
     cs2Config.saveAutoexec.mockResolvedValue({ success: true });
 
     const backup = loadBackup();
@@ -136,6 +145,7 @@ describe('backup module', () => {
         processPriority: { name: 'cs2', priority: 'Normal' },
         powerPlan: { guid: '381b4222-f694-41f0-9685-ff5bb260df2e', name: 'Balanced' },
         gameMode: { enabled: false },
+        ssdOptimize: { trim: { trimEnabled: true }, indexing: { indexingEnabled: false }, drive: 'C:' },
         cs2Autoexec: 'cl_crosshairstyle 4'
       }
     });
@@ -153,6 +163,10 @@ describe('backup module', () => {
       expect.anything()
     );
     expect(gameModeManager.restoreState).toHaveBeenCalledWith({ enabled: false }, expect.anything());
+    expect(ssdOptimizeManager.restoreState).toHaveBeenCalledWith(
+      { trim: { trimEnabled: true }, indexing: { indexingEnabled: false }, drive: 'C:' },
+      expect.anything()
+    );
     expect(cs2Config.saveAutoexec).toHaveBeenCalledWith('cl_crosshairstyle 4');
   });
 

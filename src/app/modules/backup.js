@@ -13,6 +13,7 @@ const serviceManager = require('./windowsTweaks/components/serviceManager');
 const processPriority = require('./windowsTweaks/components/processPriority');
 const powerPlanManager = require('./windowsTweaks/components/powerPlanManager');
 const gameModeManager = require('./windowsTweaks/components/gameModeManager');
+const ssdOptimizeManager = require('./windowsTweaks/components/ssdOptimizeManager');
 const cs2Config = require('./cs2Config');
 
 function getBackupDir() {
@@ -63,6 +64,7 @@ async function createSnapshot({ label, tweakId, state }) {
       processPriority: (state && state.processPriority) || null,
       powerPlan: (state && state.powerPlan) || null,
       gameMode: (state && state.gameMode) || null,
+      ssdOptimize: (state && state.ssdOptimize) || null,
       cs2Autoexec: (state && state.cs2Autoexec) || null
     }
   };
@@ -76,11 +78,12 @@ async function createSnapshot({ label, tweakId, state }) {
  * atual do autoexec.cfg — tudo em um único snapshot restaurável.
  */
 async function create() {
-  const [services, procPriority, powerPlan, gameMode, cs2Autoexec] = await Promise.all([
+  const [services, procPriority, powerPlan, gameMode, ssdOptimize, cs2Autoexec] = await Promise.all([
     serviceManager.captureServicesState(),
     processPriority.captureState(processPriority.normalizeProcessName('cs2')),
     powerPlanManager.captureState(),
     gameModeManager.captureState(),
+    ssdOptimizeManager.captureState(),
     cs2Config.getAutoexec().catch(() => '')
   ]);
 
@@ -91,7 +94,7 @@ async function create() {
     type: 'manual',
     tweakId: null,
     label: 'Backup manual completo',
-    state: { services, processPriority: procPriority, powerPlan, gameMode, cs2Autoexec }
+    state: { services, processPriority: procPriority, powerPlan, gameMode, ssdOptimize, cs2Autoexec }
   };
   writeSnapshot(snapshot);
   return { success: true, id, filePath: path.join(getBackupDir(), `${id}.json`) };
@@ -117,6 +120,7 @@ async function list() {
           hasProcessPriority: Boolean(data.state && data.state.processPriority),
           hasPowerPlan: Boolean(data.state && data.state.powerPlan && data.state.powerPlan.guid),
           hasGameMode: Boolean(data.state && data.state.gameMode && data.state.gameMode.enabled !== null && data.state.gameMode.enabled !== undefined),
+          hasSsdOptimize: Boolean(data.state && data.state.ssdOptimize && (data.state.ssdOptimize.trim || data.state.ssdOptimize.indexing)),
           hasCs2Autoexec: data.state && typeof data.state.cs2Autoexec === 'string'
         };
       } catch (_) {
@@ -170,6 +174,13 @@ async function restore(backupId, Logger) {
     results.gameMode = await gameModeManager.restoreState(state.gameMode, Logger);
     if (!results.gameMode.success) anyFailed = true;
     if (Logger) Logger.info('backup', `Game Mode restaurado a partir do backup ${backupId}`, results.gameMode);
+  }
+
+  if (state && state.ssdOptimize) {
+    anyAttempted = true;
+    results.ssdOptimize = await ssdOptimizeManager.restoreState(state.ssdOptimize, Logger);
+    if (!results.ssdOptimize.success) anyFailed = true;
+    if (Logger) Logger.info('backup', `Otimização de SSD restaurada a partir do backup ${backupId}`, results.ssdOptimize);
   }
 
   if (state && typeof state.cs2Autoexec === 'string') {

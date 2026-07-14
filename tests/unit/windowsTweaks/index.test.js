@@ -3,6 +3,7 @@ jest.mock('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setPowerPlan');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setGameMode');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 jest.mock('../../../src/app/modules/backup');
 
 const backup = require('../../../src/app/modules/backup');
@@ -13,6 +14,7 @@ const cleanSystemCache = require('../../../src/app/modules/windowsTweaks/tweaks/
 const boostProcessPriority = require('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
 const setPowerPlan = require('../../../src/app/modules/windowsTweaks/tweaks/setPowerPlan');
 const setGameMode = require('../../../src/app/modules/windowsTweaks/tweaks/setGameMode');
+const setSsdOptimize = require('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 
 // jest.mock em módulos com apenas funções nomeadas (sem export default) não
 // preserva id/name/description automaticamente — repõe os campos estáticos
@@ -32,6 +34,9 @@ setPowerPlan.description = 'desc';
 setGameMode.id = 'game-mode';
 setGameMode.name = 'Game Mode';
 setGameMode.description = 'desc';
+setSsdOptimize.id = 'ssd-optimize';
+setSsdOptimize.name = 'Otimização de SSD';
+setSsdOptimize.description = 'desc';
 
 const windowsTweaks = require('../../../src/app/modules/windowsTweaks');
 
@@ -47,7 +52,6 @@ describe('windowsTweaks/index', () => {
     expect(ids).toEqual(Array.from(new Set(ids)));
     expect(ids).toEqual(
       expect.arrayContaining([
-        'ssd-optimize',
         'explorer-tweaks',
         'network-tweaks',
         'amd-specific',
@@ -55,7 +59,8 @@ describe('windowsTweaks/index', () => {
         'clean-system-cache',
         'boost-process-priority',
         'power-plan',
-        'game-mode'
+        'game-mode',
+        'ssd-optimize'
       ])
     );
   });
@@ -89,8 +94,8 @@ describe('windowsTweaks/index', () => {
   });
 
   test('applyTweak em tweak legado (sem implementação real) retorna o comportamento TODO padrão', async () => {
-    const result = await windowsTweaks.applyTweak('ssd-optimize', makeLogger());
-    expect(result).toMatchObject({ success: true, tweakId: 'ssd-optimize' });
+    const result = await windowsTweaks.applyTweak('explorer-tweaks', makeLogger());
+    expect(result).toMatchObject({ success: true, tweakId: 'explorer-tweaks' });
   });
 
   test('revertTweak delega para o tweak implementado correspondente', async () => {
@@ -128,13 +133,17 @@ describe('windowsTweaks/index', () => {
     expect(powerPlan.implemented).toBe(true);
     expect(powerPlan.reversible).toBe(true);
 
-    const legacy = status.find((s) => s.id === 'ssd-optimize');
+    const legacy = status.find((s) => s.id === 'explorer-tweaks');
     expect(legacy.implemented).toBe(false);
     expect(legacy.reversible).toBe(false);
 
     const gameMode = status.find((s) => s.id === 'game-mode');
     expect(gameMode.implemented).toBe(true);
     expect(gameMode.reversible).toBe(true);
+
+    const ssdOptimize = status.find((s) => s.id === 'ssd-optimize');
+    expect(ssdOptimize.implemented).toBe(true);
+    expect(ssdOptimize.reversible).toBe(true);
   });
 
   test('registerWindowsHandlers registra todos os canais IPC esperados', () => {
