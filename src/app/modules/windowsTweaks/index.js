@@ -79,7 +79,15 @@ async function revertTweak(tweakId, Logger, options) {
 }
 
 async function listStatus() {
-  return AVAILABLE_TWEAKS.map((t) => ({ ...t, applied: false }));
+  return AVAILABLE_TWEAKS.map((t) => {
+    const implemented = findImplementedTweak(t.id);
+    return {
+      ...t,
+      applied: false,
+      implemented: Boolean(implemented),
+      reversible: implemented ? implemented.id !== 'clean-system-cache' : false
+    };
+  });
 }
 
 function registerWindowsHandlers(ipcMain, Logger) {
@@ -104,6 +112,7 @@ function registerWindowsHandlers(ipcMain, Logger) {
   ipcMain.handle('windows:getUnnecessaryServices', async () => serviceManager.UNNECESSARY_SERVICES);
   ipcMain.handle('windows:getCacheTargets', async () => cacheCleaner.getCacheTargets());
   ipcMain.handle('windows:getPriorityLevels', async () => processPriority.PRIORITY_LEVELS);
+  ipcMain.handle('windows:isWindowsPlatform', async () => process.platform === 'win32');
 }
 
 module.exports = {

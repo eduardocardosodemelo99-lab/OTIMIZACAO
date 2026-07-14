@@ -136,60 +136,237 @@ async function runScan() {
 
 document.getElementById('btn-run-scan').addEventListener('click', runScan);
 
-async function loadWindowsTweaks() {
-  const tweaks = await window.cs2app.windowsTweaks.listStatus();
-  const container = document.getElementById('windows-tweaks-list');
-  container.innerHTML = tweaks
-    .map(
-      (t) => `
-      <div class="tweak-item">
-        <strong>${t.name}</strong>
-        <span class="text-muted">${t.description}</span>
-        <button class="btn btn-cs2 btn-sm" data-tweak="${t.id}">Aplicar</button>
-      </div>`
-    )
-    .join('');
+// Estado client-side de "aplicado" por tweak (a sessão do processo Windows
+// não é persistida entre execuções do app, então isso reflete só a sessão atual).
+const windowsTweaksState = {};
 
-  container.querySelectorAll('button[data-tweak]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      const originalLabel = btn.textContent;
-      btn.textContent = 'Aplicando...';
-      try {
-        const result = await window.cs2app.windowsTweaks.apply(btn.dataset.tweak);
-        if (result && result.success === false) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Tweak não aplicado',
-            text: result.error || 'Verifique os logs para mais detalhes.',
-            background: '#14171f',
-            color: '#f1f2f4',
-            confirmButtonColor: '#ff6a00'
-          });
-          return;
-        }
-        Swal.fire({
-          icon: 'success',
-          title: 'Tweak aplicado',
-          background: '#14171f',
-          color: '#f1f2f4',
-          confirmButtonColor: '#ff6a00'
-        });
-      } catch (err) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Falha ao aplicar tweak',
-          text: err.message,
-          background: '#14171f',
-          color: '#f1f2f4',
-          confirmButtonColor: '#ff6a00'
-        });
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalLabel;
-      }
-    });
+const swalTheme = {
+  background: '#14171f',
+  color: '#f1f2f4',
+  confirmButtonColor: '#ff6a00',
+  cancelButtonColor: '#3a3f4b'
+};
+
+function swalSuccess(title, html) {
+  return Swal.fire({ icon: 'success', title, html, ...swalTheme });
+}
+
+function swalError(title, text) {
+  return Swal.fire({ icon: 'error', title, text, ...swalTheme });
+}
+
+function swalWarning(title, text) {
+  return Swal.fire({ icon: 'warning', title, text, ...swalTheme });
+}
+
+function swalInfo(title, html) {
+  return Swal.fire({ icon: 'info', title, html, ...swalTheme });
+}
+
+function swalConfirm({ title, html, confirmButtonText, icon = 'warning' }) {
+  return Swal.fire({
+    icon,
+    title,
+    html,
+    showCancelButton: true,
+    confirmButtonText: confirmButtonText || 'Aplicar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true,
+    focusCancel: true,
+    ...swalTheme
   });
+}
+
+// Detalhes específicos exibidos na confirmação de cada tweak real.
+async function buildConfirmDetails(tweakId) {
+  if (tweakId === 'disable-unnecessary-services') {
+    const services = await window.cs2app.windowsTweaks.getUnnecessaryServices();
+    const items = services
+      .map((s) => `<li><strong>${s.label}</strong> <span class="text-muted">(${s.name})</span> — ${s.description}</li>`)
+      .join('');
+    return {
+      html: `
+        <p class="text-muted" style="text-align:left">Os serviços abaixo serão <strong>desabilitados e parados</strong>. Isso pode ser revertido depois pelo botão "Reverter".</p>
+        <ul style="text-align:left; max-height:220px; overflow-y:auto; padding-left:18px;">${items}</ul>
+      `,
+      confirmButtonText: 'Desabilitar serviços'
+    };
+  }
+
+  if (tweakId === 'clean-system-cache') {
+    const targets = await window.cs2app.windowsTweaks.getCacheTargets();
+    const items = targets.map((t) => `<li><strong>${t.label}</strong> <span class="text-muted">${t.path}</span></li>`).join('');
+    return {
+      html: `
+        <p style="text-align:left"><strong style="color:#ff9a9a">Atenção: esta ação não é reversível.</strong></p>
+        <p class="text-muted" style="text-align:left">Os arquivos dentro das pastas abaixo serão apagados permanentemente:</p>
+        <ul style="text-align:left; max-height:220px; overflow-y:auto; padding-left:18px;">${items}</ul>
+      `,
+      confirmButtonText: 'Limpar cache'
+    };
+  }
+
+  if (tweakId === 'boost-process-priority') {
+    const levels = await window.cs2app.windowsTweaks.getPriorityLevels();
+    const options = levels.map((l) => `<option value="${l}" ${l === 'High' ? 'selected' : ''}>${l}</option>`).join('');
+    return {
+      html: `
+        <p class="text-muted" style="text-align:left">Define a prioridade de CPU do processo informado. Use "RealTime" com cuidado — pode travar o sistema.</p>
+        <div style="text-align:left; margin-top:10px;">
+          <label class="text-muted" for="swal-process-name">Nome do processo</label>
+          <input id="swal-process-name" class="swal2-input" value="cs2" style="margin:6px 0 12px;" />
+          <label class="text-muted" for="swal-process-priority">Prioridade</label>
+          <select id="swal-process-priority" class="swal2-input" style="margin-top:6px;">${options}</select>
+        </div>
+      `,
+      confirmButtonText: 'Definir prioridade',
+      preConfirm: () => {
+        const processName = document.getElementById('swal-process-name').value.trim() || 'cs2';
+        const priority = document.getElementById('swal-process-priority').value;
+        return { processName, priority };
+      }
+    };
+  }
+
+  return { html: '<p class="text-muted">Confirma a aplicação deste ajuste?</p>', confirmButtonText: 'Aplicar' };
+}
+
+function formatTweakResult(tweakId, result) {
+  if (result.skipped) {
+    return '<p class="text-muted">Comando ignorado: este recurso só funciona no Windows. Nada foi alterado neste ambiente.</p>';
+  }
+  if (tweakId === 'disable-unnecessary-services') {
+    const rows = (result.results || [])
+      .map((r) => `<li>${r.success ? '✅' : '❌'} ${r.name}${r.error ? ` — <span class="text-muted">${r.error}</span>` : ''}</li>`)
+      .join('');
+    return `<p>${result.disabledCount}/${result.total} serviços desabilitados</p><ul style="text-align:left; padding-left:18px;">${rows}</ul>`;
+  }
+  if (tweakId === 'clean-system-cache') {
+    return `<p><strong>${formatMB(result.totalFreedMB)}</strong> liberados · ${result.totalDeletedFiles} arquivos removidos</p>`;
+  }
+  if (tweakId === 'boost-process-priority') {
+    return `<p>Prioridade de <strong>${result.name}</strong> definida como <strong>${result.priority}</strong></p>`;
+  }
+  return '';
+}
+
+function renderTweakItem(t) {
+  const state = windowsTweaksState[t.id] || {};
+  const notImplementedNote = !t.implemented
+    ? '<span class="tweak-badge tweak-badge-soon">Em breve</span>'
+    : '<span class="tweak-badge tweak-badge-real">Ativo</span>';
+  const applyLabel = state.applied ? 'Reaplicar' : 'Aplicar';
+  const showRevert = t.implemented && t.reversible && state.applied;
+
+  return `
+    <div class="tweak-item" data-tweak-item="${t.id}">
+      <div class="tweak-item-header">
+        <strong>${t.name}</strong>
+        ${notImplementedNote}
+      </div>
+      <span class="text-muted">${t.description}</span>
+      ${state.lastMessageHtml ? `<div class="tweak-result">${state.lastMessageHtml}</div>` : ''}
+      <div class="tweak-actions">
+        <button class="btn btn-cs2 btn-sm" data-tweak="${t.id}" ${t.implemented ? '' : 'disabled title="Ainda não implementado"'}>${applyLabel}</button>
+        ${showRevert ? `<button class="btn btn-outline-cs2 btn-sm" data-tweak-revert="${t.id}">Reverter</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function loadWindowsTweaks() {
+  const container = document.getElementById('windows-tweaks-list');
+  const [tweaks, isWindows] = await Promise.all([
+    window.cs2app.windowsTweaks.listStatus(),
+    window.cs2app.windowsTweaks.isWindowsPlatform()
+  ]);
+
+  const banner = isWindows
+    ? ''
+    : `<div class="presentmon-banner"><span class="presentmon-banner-text">⚠️ Este ambiente não é Windows — os ajustes reais (serviços, cache, prioridade) serão simulados e nada será alterado de verdade.</span></div>`;
+
+  container.innerHTML = banner + tweaks.map(renderTweakItem).join('');
+  attachWindowsTweaksHandlers(container);
+}
+
+function attachWindowsTweaksHandlers(container) {
+  container.querySelectorAll('button[data-tweak]').forEach((btn) => {
+    btn.addEventListener('click', () => handleApplyTweak(btn.dataset.tweak));
+  });
+  container.querySelectorAll('button[data-tweak-revert]').forEach((btn) => {
+    btn.addEventListener('click', () => handleRevertTweak(btn.dataset.tweakRevert));
+  });
+}
+
+async function handleApplyTweak(tweakId) {
+  const details = await buildConfirmDetails(tweakId);
+  const confirmResult = await swalConfirm({
+    title: 'Confirmar alteração no sistema',
+    html: details.html,
+    confirmButtonText: details.confirmButtonText
+  });
+  if (!confirmResult.isConfirmed) return;
+
+  const options = typeof details.preConfirm === 'function' ? details.preConfirm() : undefined;
+  const btn = document.querySelector(`button[data-tweak="${tweakId}"]`);
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Aplicando...';
+  }
+
+  try {
+    const result = await window.cs2app.windowsTweaks.apply(tweakId, options);
+    if (!result || result.success === false) {
+      swalWarning('Tweak não aplicado', (result && result.error) || 'Verifique os logs para mais detalhes.');
+      windowsTweaksState[tweakId] = { applied: false, lastMessageHtml: formatTweakResult(tweakId, result || {}) };
+    } else {
+      windowsTweaksState[tweakId] = { applied: true, lastMessageHtml: formatTweakResult(tweakId, result) };
+      swalSuccess('Tweak aplicado com sucesso', formatTweakResult(tweakId, result));
+    }
+  } catch (err) {
+    swalError('Falha ao aplicar tweak', err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+    loadWindowsTweaks();
+  }
+}
+
+async function handleRevertTweak(tweakId) {
+  const confirmResult = await swalConfirm({
+    title: 'Reverter alteração?',
+    html: '<p class="text-muted">Isso desfaz o ajuste aplicado anteriormente.</p>',
+    confirmButtonText: 'Reverter',
+    icon: 'question'
+  });
+  if (!confirmResult.isConfirmed) return;
+
+  const btn = document.querySelector(`button[data-tweak-revert="${tweakId}"]`);
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Revertendo...';
+  }
+
+  try {
+    const result = await window.cs2app.windowsTweaks.revert(tweakId);
+    if (!result || result.success === false) {
+      swalWarning('Não foi possível reverter', (result && result.error) || 'Verifique os logs para mais detalhes.');
+    } else {
+      windowsTweaksState[tweakId] = { applied: false, lastMessageHtml: '' };
+      swalSuccess('Alteração revertida', '');
+    }
+  } catch (err) {
+    swalError('Falha ao reverter tweak', err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+    loadWindowsTweaks();
+  }
 }
 
 async function loadProfiles() {

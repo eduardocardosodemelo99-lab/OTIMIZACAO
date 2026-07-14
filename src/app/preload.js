@@ -30,7 +30,8 @@ contextBridge.exposeInMainWorld('cs2app', {
     listStatus: () => ipcRenderer.invoke('windows:listStatus'),
     getUnnecessaryServices: () => ipcRenderer.invoke('windows:getUnnecessaryServices'),
     getCacheTargets: () => ipcRenderer.invoke('windows:getCacheTargets'),
-    getPriorityLevels: () => ipcRenderer.invoke('windows:getPriorityLevels')
+    getPriorityLevels: () => ipcRenderer.invoke('windows:getPriorityLevels'),
+    isWindowsPlatform: () => ipcRenderer.invoke('windows:isWindowsPlatform')
   },
 
   profiles: {

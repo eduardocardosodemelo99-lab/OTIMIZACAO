@@ -84,6 +84,26 @@ describe('windowsTweaks/index', () => {
     status.forEach((s) => expect(s.applied).toBe(false));
   });
 
+  test('listStatus marca implemented:true e reversible corretamente para os tweaks reais', async () => {
+    const status = await windowsTweaks.listStatus();
+
+    const services = status.find((s) => s.id === 'disable-unnecessary-services');
+    expect(services.implemented).toBe(true);
+    expect(services.reversible).toBe(true);
+
+    const cache = status.find((s) => s.id === 'clean-system-cache');
+    expect(cache.implemented).toBe(true);
+    expect(cache.reversible).toBe(false);
+
+    const priority = status.find((s) => s.id === 'boost-process-priority');
+    expect(priority.implemented).toBe(true);
+    expect(priority.reversible).toBe(true);
+
+    const legacy = status.find((s) => s.id === 'game-mode');
+    expect(legacy.implemented).toBe(false);
+    expect(legacy.reversible).toBe(false);
+  });
+
   test('registerWindowsHandlers registra todos os canais IPC esperados', () => {
     const handlers = {};
     const ipcMain = { handle: jest.fn((channel, fn) => { handlers[channel] = fn; }) };
