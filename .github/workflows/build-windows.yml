@@ -84,6 +84,7 @@ jobs:
 
       - name: Commit README update
         if: success() && github.event_name != 'pull_request'
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
