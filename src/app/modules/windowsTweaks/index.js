@@ -17,6 +17,7 @@ const powerPlanManager = require('./components/powerPlanManager');
 const gameModeManager = require('./components/gameModeManager');
 const ssdOptimizeManager = require('./components/ssdOptimizeManager');
 const explorerTweaksManager = require('./components/explorerTweaksManager');
+const amdSpecificManager = require('./components/amdSpecificManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
@@ -26,13 +27,13 @@ const setPowerPlan = require('./tweaks/setPowerPlan');
 const setGameMode = require('./tweaks/setGameMode');
 const setSsdOptimize = require('./tweaks/setSsdOptimize');
 const setExplorerTweaks = require('./tweaks/setExplorerTweaks');
+const setAmdSpecific = require('./tweaks/setAmdSpecific');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
 // Perfis e a UI existente. Serão implementados em etapas futuras.
 const LEGACY_TWEAKS = [
-  { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' },
-  { id: 'amd-specific', name: 'AMD Specific', description: 'Ajustes específicos para CPUs/GPUs AMD' }
+  { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' }
 ];
 
 // Tweaks com implementação real, construídos a partir dos componentes reutilizáveis.
@@ -43,7 +44,8 @@ const IMPLEMENTED_TWEAKS = [
   setPowerPlan,
   setGameMode,
   setSsdOptimize,
-  setExplorerTweaks
+  setExplorerTweaks,
+  setAmdSpecific
 ];
 
 const AVAILABLE_TWEAKS = [
@@ -81,6 +83,9 @@ async function captureTweakPreState(tweakId, options) {
   }
   if (tweakId === 'explorer-tweaks') {
     return { explorerTweaks: await explorerTweaksManager.captureState() };
+  }
+  if (tweakId === 'amd-specific') {
+    return { amdSpecific: await amdSpecificManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -167,5 +172,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager, explorerTweaksManager }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager, explorerTweaksManager, amdSpecificManager }
 };

@@ -5,6 +5,7 @@ jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setPowerPlan');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setGameMode');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setExplorerTweaks');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/setAmdSpecific');
 jest.mock('../../../src/app/modules/backup');
 
 const backup = require('../../../src/app/modules/backup');
@@ -17,6 +18,7 @@ const setPowerPlan = require('../../../src/app/modules/windowsTweaks/tweaks/setP
 const setGameMode = require('../../../src/app/modules/windowsTweaks/tweaks/setGameMode');
 const setSsdOptimize = require('../../../src/app/modules/windowsTweaks/tweaks/setSsdOptimize');
 const setExplorerTweaks = require('../../../src/app/modules/windowsTweaks/tweaks/setExplorerTweaks');
+const setAmdSpecific = require('../../../src/app/modules/windowsTweaks/tweaks/setAmdSpecific');
 
 // jest.mock em módulos com apenas funções nomeadas (sem export default) não
 // preserva id/name/description automaticamente — repõe os campos estáticos
@@ -42,6 +44,9 @@ setSsdOptimize.description = 'desc';
 setExplorerTweaks.id = 'explorer-tweaks';
 setExplorerTweaks.name = 'Explorer';
 setExplorerTweaks.description = 'desc';
+setAmdSpecific.id = 'amd-specific';
+setAmdSpecific.name = 'AMD Specific';
+setAmdSpecific.description = 'desc';
 
 const windowsTweaks = require('../../../src/app/modules/windowsTweaks');
 
@@ -68,6 +73,12 @@ describe('windowsTweaks/index', () => {
         'explorer-tweaks'
       ])
     );
+  });
+
+  test('amd-specific agora é um tweak implementado, não mais legado', async () => {
+    const status = await windowsTweaks.listStatus();
+    const amdSpecific = status.find((s) => s.id === 'amd-specific');
+    expect(amdSpecific.implemented).toBe(true);
   });
 
   test('applyTweak retorna erro para um tweak desconhecido', async () => {
@@ -153,6 +164,10 @@ describe('windowsTweaks/index', () => {
     const explorerTweaks = status.find((s) => s.id === 'explorer-tweaks');
     expect(explorerTweaks.implemented).toBe(true);
     expect(explorerTweaks.reversible).toBe(true);
+
+    const amdSpecific = status.find((s) => s.id === 'amd-specific');
+    expect(amdSpecific.implemented).toBe(true);
+    expect(amdSpecific.reversible).toBe(true);
   });
 
   test('registerWindowsHandlers registra todos os canais IPC esperados', () => {
