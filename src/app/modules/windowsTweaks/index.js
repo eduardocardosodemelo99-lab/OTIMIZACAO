@@ -14,18 +14,19 @@ const serviceManager = require('./components/serviceManager');
 const cacheCleaner = require('./components/cacheCleaner');
 const processPriority = require('./components/processPriority');
 const powerPlanManager = require('./components/powerPlanManager');
+const gameModeManager = require('./components/gameModeManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
 const cleanSystemCache = require('./tweaks/cleanSystemCache');
 const boostProcessPriority = require('./tweaks/boostProcessPriority');
 const setPowerPlan = require('./tweaks/setPowerPlan');
+const setGameMode = require('./tweaks/setGameMode');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
 // Perfis e a UI existente. Serão implementados em etapas futuras.
 const LEGACY_TWEAKS = [
-  { id: 'game-mode', name: 'Game Mode', description: 'Ativa/otimiza o Game Mode do Windows' },
   { id: 'ssd-optimize', name: 'Otimização de SSD', description: 'Ajustes de TRIM e indexação' },
   { id: 'explorer-tweaks', name: 'Explorer', description: 'Reduz overhead visual do Explorer' },
   { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' },
@@ -33,7 +34,7 @@ const LEGACY_TWEAKS = [
 ];
 
 // Tweaks com implementação real, construídos a partir dos componentes reutilizáveis.
-const IMPLEMENTED_TWEAKS = [disableUnnecessaryServices, cleanSystemCache, boostProcessPriority, setPowerPlan];
+const IMPLEMENTED_TWEAKS = [disableUnnecessaryServices, cleanSystemCache, boostProcessPriority, setPowerPlan, setGameMode];
 
 const AVAILABLE_TWEAKS = [
   ...LEGACY_TWEAKS,
@@ -61,6 +62,9 @@ async function captureTweakPreState(tweakId, options) {
   }
   if (tweakId === 'power-plan') {
     return { powerPlan: await powerPlanManager.captureState() };
+  }
+  if (tweakId === 'game-mode') {
+    return { gameMode: await gameModeManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -147,5 +151,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager }
 };
