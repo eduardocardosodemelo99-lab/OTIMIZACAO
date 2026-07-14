@@ -32,3 +32,19 @@ jobs:
             build/*.exe
           if-no-files-found: error
           retention-days: 30
+
+      - name: Notify Discord (success)
+        if: success()
+        shell: bash
+        run: |
+          curl -s -H "Content-Type: application/json" -X POST \
+            -d "{\"embeds\":[{\"title\":\"✅ Build concluído com sucesso\",\"description\":\"Repositório: ${{ github.repository }}\\nCommit: [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})\\nBranch: ${{ github.ref_name }}\\nAutor: ${{ github.actor }}\\n[Ver run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\",\"color\":3066993}]}" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+      - name: Notify Discord (failure)
+        if: failure()
+        shell: bash
+        run: |
+          curl -s -H "Content-Type: application/json" -X POST \
+            -d "{\"embeds\":[{\"title\":\"❌ Build falhou\",\"description\":\"Repositório: ${{ github.repository }}\\nCommit: [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})\\nBranch: ${{ github.ref_name }}\\nAutor: ${{ github.actor }}\\n[Ver run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\",\"color\":15158332}]}" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
