@@ -70,9 +70,9 @@ npm start
 ```
 
 <!-- LATEST_BUILD_START -->
-> 📦 **Último build:** [`0f9e153`](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/commit/0f9e153ba3e37b0f14a46ad0386ec8806540efbf) — gerado em 2026-07-14 19:32:24 UTC
+> 📦 **Último build:** [`e33a8a6`](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/commit/e33a8a69ceb08242cc07a4ec45df7a0e9cec2ead) — gerado em 2026-07-14 19:39:56 UTC
 >
-> 👉 [Abrir o run e baixar o instalador em "Artifacts"](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/actions/runs/29362090988)
+> 👉 [Abrir o run e baixar o instalador em "Artifacts"](https://github.com/eduardocardosodemelo99-lab/OTIMIZACAO/actions/runs/29362571991)
 <!-- LATEST_BUILD_END -->
 
 ## ⚠️ Como baixar e instalar o programa (leia antes de instalar)
