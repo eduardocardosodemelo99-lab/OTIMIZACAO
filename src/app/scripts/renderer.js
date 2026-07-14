@@ -152,14 +152,42 @@ async function loadWindowsTweaks() {
 
   container.querySelectorAll('button[data-tweak]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      await window.cs2app.windowsTweaks.apply(btn.dataset.tweak);
-      Swal.fire({
-        icon: 'success',
-        title: 'Tweak aplicado',
-        background: '#14171f',
-        color: '#f1f2f4',
-        confirmButtonColor: '#ff6a00'
-      });
+      btn.disabled = true;
+      const originalLabel = btn.textContent;
+      btn.textContent = 'Aplicando...';
+      try {
+        const result = await window.cs2app.windowsTweaks.apply(btn.dataset.tweak);
+        if (result && result.success === false) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Tweak não aplicado',
+            text: result.error || 'Verifique os logs para mais detalhes.',
+            background: '#14171f',
+            color: '#f1f2f4',
+            confirmButtonColor: '#ff6a00'
+          });
+          return;
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Tweak aplicado',
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Falha ao aplicar tweak',
+          text: err.message,
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     });
   });
 }
@@ -180,14 +208,42 @@ async function loadProfiles() {
 
   container.querySelectorAll('button[data-profile]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      await window.cs2app.profiles.apply(btn.dataset.profile);
-      Swal.fire({
-        icon: 'success',
-        title: 'Perfil aplicado',
-        background: '#14171f',
-        color: '#f1f2f4',
-        confirmButtonColor: '#ff6a00'
-      });
+      btn.disabled = true;
+      const originalLabel = btn.textContent;
+      btn.textContent = 'Aplicando...';
+      try {
+        const result = await window.cs2app.profiles.apply(btn.dataset.profile);
+        if (result && result.success === false) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Perfil não aplicado',
+            text: result.error || 'Verifique os logs para mais detalhes.',
+            background: '#14171f',
+            color: '#f1f2f4',
+            confirmButtonColor: '#ff6a00'
+          });
+          return;
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Perfil aplicado',
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Falha ao aplicar perfil',
+          text: err.message,
+          background: '#14171f',
+          color: '#f1f2f4',
+          confirmButtonColor: '#ff6a00'
+        });
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     });
   });
 }

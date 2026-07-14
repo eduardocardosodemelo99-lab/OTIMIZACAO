@@ -22,7 +22,19 @@ Software profissional de otimização de sistema e Counter-Strike 2 — Desktop 
 ```
 src/
   app/
-    modules/     -> lógica de backend (dashboard, scanner, windowsTweaks, profiles, cs2Config, benchmark, backup, logger)
+    modules/
+      dashboard.js, scanner.js, profiles.js, cs2Config.js, benchmark.js, backup.js, logger.js
+      windowsTweaks/          -> módulo Windows Tweaks (estrutura modular)
+        index.js              -> orquestração + registro dos handlers IPC
+        components/           -> peças reutilizáveis e testáveis isoladamente
+          powershellRunner.js -> execução segura de comandos PowerShell
+          serviceManager.js   -> desabilitar/reabilitar serviços do Windows
+          cacheCleaner.js     -> limpeza de temp/cache/prefetch
+          processPriority.js  -> ajuste de prioridade de processos (ex.: cs2.exe)
+        tweaks/               -> tweaks concretos, compostos a partir dos components
+          disableUnnecessaryServices.js
+          cleanSystemCache.js
+          boostProcessPriority.js
     views/        -> HTML das telas
     assets/       -> ícones e imagens
     styles/       -> CSS (glassmorphism / dark mode)
@@ -33,14 +45,18 @@ src/
   backup/         -> snapshots para restore
   logs/           -> logs da aplicação
   tools/          -> scripts auxiliares
+tests/
+  unit/windowsTweaks/ -> testes unitários (Jest) dos components, tweaks e do index
 docs/             -> documentação técnica
 ```
+
+Rode os testes unitários com `npm test` (Jest).
 
 ## Módulos
 
 - **Dashboard** — CPU, GPU, RAM, SSD, Monitor, Windows, Driver, FPS esperado
 - **Scanner** — Detecção de Intel/Xeon/Ryzen, RTX/RX, SSD/NVMe, config. do Windows
-- **Windows** — Game Mode, Power Plan, SSD, Explorer, Rede, ajustes AMD, Backup/Restore
+- **Windows** — Game Mode, Power Plan, SSD, Explorer, Rede, ajustes AMD, Backup/Restore, além das otimizações reais: desabilitar serviços desnecessários, limpar cache do sistema e aumentar prioridade de processos (ver `src/app/modules/windowsTweaks/`)
 - **Perfis** — FPS, Qualidade, Competitivo, Streaming
 - **CS2** — Autoexec, Radar, Crosshair, Viewmodel, Audio, Practice
 - **Benchmark** — Average FPS, 1% low, 0.1% low, Frame Time

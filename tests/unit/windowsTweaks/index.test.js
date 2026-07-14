@@ -1,0 +1,117 @@
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
+jest.mock('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
+
+const disableUnnecessaryServices = require('../../../src/app/modules/windowsTweaks/tweaks/disableUnnecessaryServices');
+const cleanSystemCache = require('../../../src/app/modules/windowsTweaks/tweaks/cleanSystemCache');
+const boostProcessPriority = require('../../../src/app/modules/windowsTweaks/tweaks/boostProcessPriority');
+
+// jest.mock em módulos com apenas funções nomeadas (sem export default) não
+// preserva id/name/description automaticamente — repõe os campos estáticos
+// usados pelo index.js para montar AVAILABLE_TWEAKS.
+disableUnnecessaryServices.id = 'disable-unnecessary-services';
+disableUnnecessaryServices.name = 'Desabilitar Serviços Desnecessários';
+disableUnnecessaryServices.description = 'desc';
+cleanSystemCache.id = 'clean-system-cache';
+cleanSystemCache.name = 'Limpar Cache do Sistema';
+cleanSystemCache.description = 'desc';
+boostProcessPriority.id = 'boost-process-priority';
+boostProcessPriority.name = 'Aumentar Prioridade de Processo';
+boostProcessPriority.description = 'desc';
+
+const windowsTweaks = require('../../../src/app/modules/windowsTweaks');
+
+function makeLogger() {
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+}
+
+afterEach(() => jest.clearAllMocks());
+
+describe('windowsTweaks/index', () => {
+  test('AVAILABLE_TWEAKS inclui os tweaks legados e os implementados, sem ids duplicados', () => {
+    const ids = windowsTweaks.AVAILABLE_TWEAKS.map((t) => t.id);
+    expect(ids).toEqual(Array.from(new Set(ids)));
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'game-mode',
+        'power-plan',
+        'ssd-optimize',
+        'explorer-tweaks',
+        'network-tweaks',
+        'amd-specific',
+        'disable-unnecessary-services',
+        'clean-system-cache',
+        'boost-process-priority'
+      ])
+    );
+  });
+
+  test('applyTweak retorna erro para um tweak desconhecido', async () => {
+    const result = await windowsTweaks.applyTweak('tweak-que-nao-existe', makeLogger());
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/desconhecido/);
+  });
+
+  test('applyTweak delega para o tweak implementado correspondente', async () => {
+    disableUnnecessaryServices.apply.mockResolvedValue({ success: true, disabledCount: 6 });
+    const Logger = makeLogger();
+
+    const result = await windowsTweaks.applyTweak('disable-unnecessary-services', Logger, { serviceNames: ['SysMain'] });
+
+    expect(disableUnnecessaryServices.apply).toHaveBeenCalledWith(Logger, { serviceNames: ['SysMain'] });
+    expect(result).toMatchObject({ tweakId: 'disable-unnecessary-services', success: true, disabledCount: 6 });
+    expect(result.appliedAt).toBeDefined();
+  });
+
+  test('applyTweak em tweak legado (sem implementação real) retorna o comportamento TODO padrão', async () => {
+    const result = await windowsTweaks.applyTweak('game-mode', makeLogger());
+    expect(result).toMatchObject({ success: true, tweakId: 'game-mode' });
+  });
+
+  test('revertTweak delega para o tweak implementado correspondente', async () => {
+    cleanSystemCache.revert.mockResolvedValue({ success: false, error: 'não é reversível' });
+    const Logger = makeLogger();
+
+    const result = await windowsTweaks.revertTweak('clean-system-cache', Logger);
+
+    expect(cleanSystemCache.revert).toHaveBeenCalledWith(Logger, {});
+    expect(result.success).toBe(false);
+  });
+
+  test('listStatus retorna todos os tweaks com applied:false', async () => {
+    const status = await windowsTweaks.listStatus();
+    expect(status.length).toBe(windowsTweaks.AVAILABLE_TWEAKS.length);
+    status.forEach((s) => expect(s.applied).toBe(false));
+  });
+
+  test('registerWindowsHandlers registra todos os canais IPC esperados', () => {
+    const handlers = {};
+    const ipcMain = { handle: jest.fn((channel, fn) => { handlers[channel] = fn; }) };
+    const Logger = makeLogger();
+
+    windowsTweaks.registerWindowsHandlers(ipcMain, Logger);
+
+    expect(Object.keys(handlers)).toEqual(
+      expect.arrayContaining([
+        'windows:applyTweak',
+        'windows:revertTweak',
+        'windows:listStatus',
+        'windows:getUnnecessaryServices',
+        'windows:getCacheTargets',
+        'windows:getPriorityLevels'
+      ])
+    );
+  });
+
+  test('handler windows:applyTweak loga warn quando o resultado não é bem-sucedido', async () => {
+    boostProcessPriority.apply.mockResolvedValue({ success: false, error: 'processo não encontrado' });
+    const handlers = {};
+    const ipcMain = { handle: jest.fn((channel, fn) => { handlers[channel] = fn; }) };
+    const Logger = makeLogger();
+    windowsTweaks.registerWindowsHandlers(ipcMain, Logger);
+
+    await handlers['windows:applyTweak']({}, 'boost-process-priority');
+
+    expect(Logger.warn).toHaveBeenCalled();
+  });
+});

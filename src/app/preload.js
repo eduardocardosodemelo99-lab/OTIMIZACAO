@@ -25,9 +25,12 @@ contextBridge.exposeInMainWorld('cs2app', {
   },
 
   windowsTweaks: {
-    apply: (tweakId) => ipcRenderer.invoke('windows:applyTweak', tweakId),
-    revert: (tweakId) => ipcRenderer.invoke('windows:revertTweak', tweakId),
-    listStatus: () => ipcRenderer.invoke('windows:listStatus')
+    apply: (tweakId, options) => ipcRenderer.invoke('windows:applyTweak', tweakId, options),
+    revert: (tweakId, options) => ipcRenderer.invoke('windows:revertTweak', tweakId, options),
+    listStatus: () => ipcRenderer.invoke('windows:listStatus'),
+    getUnnecessaryServices: () => ipcRenderer.invoke('windows:getUnnecessaryServices'),
+    getCacheTargets: () => ipcRenderer.invoke('windows:getCacheTargets'),
+    getPriorityLevels: () => ipcRenderer.invoke('windows:getPriorityLevels')
   },
 
   profiles: {
