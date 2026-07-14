@@ -55,9 +55,18 @@ npm start
 
 ## Como gerar o instalador Windows
 
+### Opção 1 — GitHub Actions (automático, recomendado)
+A cada push na branch `main`, o workflow `.github/workflows/build-windows.yml` builda
+automaticamente o `.exe` em um runner `windows-latest` e disponibiliza como artifact
+na aba **Actions** do repositório ("cs2-ultimate-optimizer-windows"). Também pode ser
+disparado manualmente pela aba Actions (`workflow_dispatch`).
+
+### Opção 2 — Local, em uma máquina Windows
 ```bash
+npm install
 npm run build:win
 ```
+O instalador é gerado em `build/`.
 
 ## Status do desenvolvimento
 
