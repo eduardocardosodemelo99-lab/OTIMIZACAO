@@ -98,68 +98,28 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Notify Discord (success)
-        if: success()
+      - name: Update Discord build dashboard & alert on failure
+        if: always()
         shell: node {0}
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          REF_NAME: ${{ github.ref_name }}
-          ACTOR: ${{ github.actor }}
-          SERVER_URL: ${{ github.server_url }}
-          RUN_ID: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          const https = require('https');
-          const { URL } = require('url');
-          const shortSha = process.env.SHA.slice(0, 7);
-          const commitUrl = `${process.env.SERVER_URL}/${process.env.REPO}/commit/${process.env.SHA}`;
-          const runUrl = `${process.env.SERVER_URL}/${process.env.REPO}/actions/runs/${process.env.RUN_ID}`;
-          const payload = JSON.stringify({
-            embeds: [{
-              title: '✅ Build concluído com sucesso',
-              description: `Repositório: ${process.env.REPO}\nCommit: [\`${shortSha}\`](${commitUrl})\nBranch: ${process.env.REF_NAME}\nAutor: ${process.env.ACTOR}\n[Ver run](${runUrl})`,
-              color: 3066993
-            }]
-          });
-          const url = new URL(process.env.DISCORD_WEBHOOK_URL);
-          const req = https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, (res) => {
-            console.log('Discord response status:', res.statusCode);
-            res.on('data', (d) => process.stdout.write(d));
-          });
-          req.on('error', (e) => { console.error('Discord notify failed:', e); process.exit(1); });
-          req.write(payload);
-          req.end();
+          require('./.github/scripts/discord-dashboard.js');
 
-      - name: Notify Discord (failure)
-        if: failure()
-        shell: node {0}
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          REF_NAME: ${{ github.ref_name }}
-          ACTOR: ${{ github.actor }}
-          SERVER_URL: ${{ github.server_url }}
-          RUN_ID: ${{ github.run_id }}
+      - name: Commit dashboard message id (if changed)
+        if: always()
+        shell: bash
         run: |
-          const https = require('https');
-          const { URL } = require('url');
-          const shortSha = process.env.SHA.slice(0, 7);
-          const commitUrl = `${process.env.SERVER_URL}/${process.env.REPO}/commit/${process.env.SHA}`;
-          const runUrl = `${process.env.SERVER_URL}/${process.env.REPO}/actions/runs/${process.env.RUN_ID}`;
-          const payload = JSON.stringify({
-            embeds: [{
-              title: '❌ Build falhou',
-              description: `Repositório: ${process.env.REPO}\nCommit: [\`${shortSha}\`](${commitUrl})\nBranch: ${process.env.REF_NAME}\nAutor: ${process.env.ACTOR}\n[Ver run](${runUrl})`,
-              color: 15158332
-            }]
-          });
-          const url = new URL(process.env.DISCORD_WEBHOOK_URL);
-          const req = https.request(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, (res) => {
-            console.log('Discord response status:', res.statusCode);
-            res.on('data', (d) => process.stdout.write(d));
-          });
-          req.on('error', (e) => { console.error('Discord notify failed:', e); process.exit(1); });
-          req.write(payload);
-          req.end();
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/discord-dashboard-message-id.txt 2>/dev/null || true
+          if git diff --cached --quiet 2>/dev/null; then
+            echo "Nenhuma alteração no id da mensagem do dashboard."
+          else
+            git commit -m "chore: atualiza id da mensagem do dashboard Discord [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+        continue-on-error: true
