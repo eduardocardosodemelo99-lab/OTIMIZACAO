@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+  <title>CS2 Ultimate Optimizer</title>
+  <link rel="stylesheet" href="../../../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="titlebar">
+    <div class="titlebar-brand">
+      <span class="brand-dot"></span>
+      CS2 Ultimate Optimizer <span class="version-tag">v0.1.0</span>
+    </div>
+    <div class="titlebar-controls">
+      <button id="btn-min" title="Minimizar">&#8211;</button>
+      <button id="btn-max" title="Maximizar">&#9723;</button>
+      <button id="btn-close" title="Fechar">&#10005;</button>
+    </div>
+  </div>
+
+  <div id="app-shell">
+    <nav id="sidebar" class="glass-panel">
+      <ul class="nav flex-column nav-modules">
+        <li><button class="nav-link active" data-view="dashboard">📊 Dashboard</button></li>
+        <li><button class="nav-link" data-view="scanner">🔍 Scanner</button></li>
+        <li><button class="nav-link" data-view="windows">🪟 Windows</button></li>
+        <li><button class="nav-link" data-view="profiles">🎯 Perfis</button></li>
+        <li><button class="nav-link" data-view="cs2">🎮 CS2</button></li>
+        <li><button class="nav-link" data-view="benchmark">📈 Benchmark</button></li>
+        <li><button class="nav-link" data-view="logs">🗒️ Logs</button></li>
+      </ul>
+    </nav>
+
+    <main id="content">
+      <section id="view-dashboard" class="view active glass-panel">
+        <h2>Dashboard</h2>
+        <p class="text-muted">Visão geral de CPU, GPU, RAM, SSD, Monitor, Windows, Driver e FPS esperado.</p>
+        <div id="dashboard-grid" class="stat-grid"></div>
+      </section>
+
+      <section id="view-scanner" class="view glass-panel d-none">
+        <h2>Scanner</h2>
+        <p class="text-muted">Detecção automática de hardware e configuração do sistema.</p>
+        <button id="btn-run-scan" class="btn btn-cs2">Executar Scan Completo</button>
+        <pre id="scanner-result" class="result-box"></pre>
+      </section>
+
+      <section id="view-windows" class="view glass-panel d-none">
+        <h2>Windows</h2>
+        <p class="text-muted">Game Mode, Power Plan, SSD, Explorer, Rede e ajustes AMD.</p>
+        <div id="windows-tweaks-list" class="tweak-list"></div>
+      </section>
+
+      <section id="view-profiles" class="view glass-panel d-none">
+        <h2>Perfis</h2>
+        <p class="text-muted">FPS, Qualidade, Competitivo, Streaming.</p>
+        <div id="profiles-list" class="profile-list"></div>
+      </section>
+
+      <section id="view-cs2" class="view glass-panel d-none">
+        <h2>CS2</h2>
+        <p class="text-muted">Autoexec, Radar, Crosshair, Viewmodel, Audio, Practice.</p>
+        <textarea id="cs2-autoexec" class="autoexec-box" rows="12" placeholder="// autoexec.cfg"></textarea>
+        <div class="mt-2">
+          <button id="btn-save-autoexec" class="btn btn-cs2">Salvar Autoexec</button>
+        </div>
+      </section>
+
+      <section id="view-benchmark" class="view glass-panel d-none">
+        <h2>Benchmark</h2>
+        <p class="text-muted">Average FPS, 1% low, 0.1% low, Frame Time.</p>
+        <button id="btn-start-benchmark" class="btn btn-cs2">Iniciar Benchmark</button>
+        <canvas id="benchmark-chart" height="120"></canvas>
+      </section>
+
+      <section id="view-logs" class="view glass-panel d-none">
+        <h2>Logs</h2>
+        <p class="text-muted">Histórico completo de eventos da aplicação.</p>
+        <pre id="logs-box" class="result-box"></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="../../../node_modules/chart.js/dist/chart.umd.js"></script>
+  <script src="../../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+  <script src="../scripts/renderer.js"></script>
+</body>
+</html>
