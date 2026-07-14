@@ -1,0 +1,12 @@
+{
+  "appVersion": "0.1.0",
+  "activeProfile": null,
+  "windowsTweaksApplied": [],
+  "cs2ActivePreset": null,
+  "backupBeforeApply": true,
+  "theme": {
+    "mode": "dark",
+    "style": "glassmorphism",
+    "accentColor": "#ff6a00"
+  }
+}
