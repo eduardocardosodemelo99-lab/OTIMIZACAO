@@ -16,6 +16,7 @@ const processPriority = require('./components/processPriority');
 const powerPlanManager = require('./components/powerPlanManager');
 const gameModeManager = require('./components/gameModeManager');
 const ssdOptimizeManager = require('./components/ssdOptimizeManager');
+const explorerTweaksManager = require('./components/explorerTweaksManager');
 const backup = require('../backup');
 
 const disableUnnecessaryServices = require('./tweaks/disableUnnecessaryServices');
@@ -24,12 +25,12 @@ const boostProcessPriority = require('./tweaks/boostProcessPriority');
 const setPowerPlan = require('./tweaks/setPowerPlan');
 const setGameMode = require('./tweaks/setGameMode');
 const setSsdOptimize = require('./tweaks/setSsdOptimize');
+const setExplorerTweaks = require('./tweaks/setExplorerTweaks');
 
 // Tweaks legados (definidos antes desta etapa), ainda sem implementação real
 // via PowerShell/registry — mantidos por compatibilidade com o módulo de
 // Perfis e a UI existente. Serão implementados em etapas futuras.
 const LEGACY_TWEAKS = [
-  { id: 'explorer-tweaks', name: 'Explorer', description: 'Reduz overhead visual do Explorer' },
   { id: 'network-tweaks', name: 'Rede', description: 'Ajustes de latência de rede (TCP/IP)' },
   { id: 'amd-specific', name: 'AMD Specific', description: 'Ajustes específicos para CPUs/GPUs AMD' }
 ];
@@ -41,7 +42,8 @@ const IMPLEMENTED_TWEAKS = [
   boostProcessPriority,
   setPowerPlan,
   setGameMode,
-  setSsdOptimize
+  setSsdOptimize,
+  setExplorerTweaks
 ];
 
 const AVAILABLE_TWEAKS = [
@@ -76,6 +78,9 @@ async function captureTweakPreState(tweakId, options) {
   }
   if (tweakId === 'ssd-optimize') {
     return { ssdOptimize: await ssdOptimizeManager.captureState() };
+  }
+  if (tweakId === 'explorer-tweaks') {
+    return { explorerTweaks: await explorerTweaksManager.captureState() };
   }
   // clean-system-cache é destrutivo e não reversível: nenhum estado a capturar.
   return null;
@@ -162,5 +167,5 @@ module.exports = {
   applyTweak,
   revertTweak,
   listStatus,
-  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager }
+  components: { serviceManager, cacheCleaner, processPriority, powerPlanManager, gameModeManager, ssdOptimizeManager, explorerTweaksManager }
 };
